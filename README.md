@@ -4,7 +4,7 @@ A test of [micro-ros for arduino](https://github.com/micro_ros_ardino) on a Teen
 This is a simple driver for a differential drive robot base.
 
 ### Features
-- Uses standard interfaces - Accepts Twsit messages on /cmd_vel topic.
+- Uses standard interfaces - accepts twist messages on /cmd_vel topic.
 - Has deadmand timer so the motors are set to 0 if no command is recieved for a set period.
 
 ## Install
