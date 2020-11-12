@@ -24,11 +24,7 @@ void coms_error(Motor& left, Motor& right){
 * @brief Error loop for when there is an error in the configuration.
 * Continually flashes long/short.
 */
-void config_error(Motor& left, Motor& right){
-  // stop motors
-  left.move_fwd(0);
-  right.move_fwd(0);
-
+void config_error(){
   // flash onboard LED
   while(1){
     digitalWrite(LED_PIN, HIGH);

@@ -5,6 +5,6 @@
 #include "motor.h"
 
 void coms_error(Motor&, Motor&);
-void config_error(Motor&, Motor&);
+void config_error();
 
 #endif
