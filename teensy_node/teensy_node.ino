@@ -16,7 +16,7 @@
 #include <diagnostic_msgs/msg/diagnostic_status.h>
 #include <diagnostic_msgs/msg/diagnostic_array.h>
 #include <geometry_msgs/msg/twist.h>
-
+#include "robot_driver.h"
 #include "config.h"
 
 rcl_subscription_t subscriber;
@@ -39,30 +39,7 @@ rcl_timer_t deadman_timer;
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
 
-// max_speed_ in m/s
-// wheel_base_ in m
-class RobotDriver{
-    float max_speed_, wheel_base_;
-  public:
-    RobotDriver(float max_speed,float wheel_base) : max_speed_(max_speed), wheel_base_(wheel_base) {}
-    void wheel_speeds(float, float);
-    int percent_speed(float);
-    float right_speed;
-    float left_speed;
-};
 
-// Convert twist velocities to wheel speed for diff drive
-void RobotDriver::wheel_speeds(float linear, float angular){
-  left_speed = linear - angular*wheel_base_/2;
-  right_speed = linear + angular*wheel_base_/2;
-
-}
-
-// While no vel feedback just convert desired velocity to percentage of robot max
-int RobotDriver::percent_speed(float speed){
-  int percent = (100 * speed/max_speed_);
-  return percent;
-}
 
 // TODO: currently for half SN754410 H-Bridge, need to generalise
 class Motor{
