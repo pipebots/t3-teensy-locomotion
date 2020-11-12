@@ -17,6 +17,7 @@
 #include <diagnostic_msgs/msg/diagnostic_array.h>
 #include <geometry_msgs/msg/twist.h>
 #include "robot_driver.h"
+#include "motor.h"
 #include "config.h"
 
 rcl_subscription_t subscriber;
@@ -39,56 +40,6 @@ rcl_timer_t deadman_timer;
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
 
-
-
-// TODO: currently for half SN754410 H-Bridge, need to generalise
-class Motor{
-    int pin_en_, pin_A_, pin_B_, deadzone_;
-  public:
-    void setup(int, int, int, int);
-    void move(int);
-};
-
-void Motor::setup(int enable, int pin_1, int pin_2, int dead_zone){
-  pin_en_ = enable;
-  pin_A_ = pin_1;
-  pin_B_ = pin_2;
-  deadzone_ = dead_zone;
-
-  // set digital i/o pins as outputs:
-  pinMode(pin_en_, OUTPUT);
-  pinMode(pin_A_, OUTPUT);
-  pinMode(pin_B_, OUTPUT);
-}
-
-// convert percentage speed to pwm and send to motors
-void Motor::move(int percent_speed){
-  int abs_speed = abs(percent_speed);
-  abs_speed = constrain(abs_speed, 0, 100); //check and constrain to 0-100%
-
-  //add deadzone to turn off motors if PID is close to 0.
-  if (abs_speed < deadzone_){
-    abs_speed = 0;
-  }
-
-  //conver % to pwm output
-  int pwm = map(abs_speed, 0, 100, 0, 255);
-
-  // set direction
-  if(percent_speed >= 0){
-    digitalWrite(pin_A_, HIGH);
-    digitalWrite(pin_B_, LOW);
-  }
-  else{
-    digitalWrite(pin_A_, LOW);
-    digitalWrite(pin_B_, HIGH);
-
-  }
-  // set speed
-  analogWrite(pin_en_, pwm);
-  //floatmsg.data = pwm;
-}
-
 RobotDriver robot(max_speed, wheel_base); //TODO set as parameter externally
 Motor left_motor;
 Motor right_motor;
@@ -96,8 +47,8 @@ Motor right_motor;
 //flash for 5 second then restart in attempt to reconnect
 void error_loop(){
   //stop motors
-  left_motor.move(0);
-  right_motor.move(0);
+  left_motor.move_percent(0);
+  right_motor.move_percent(0);
   for(int i = 0; i <=50; i++){
     digitalWrite(LED_PIN, !digitalRead(LED_PIN));
     delay(100);
@@ -128,10 +79,10 @@ void vel_received_callback(const void * msgin)
   int r_percent_speed = robot.percent_speed(robot.right_speed);
 
   //move motors
-  left_motor.move(l_percent_speed);
+  left_motor.move_percent(l_percent_speed);
   floatmsg.data = l_percent_speed;
   RCSOFTCHECK(rcl_publish(&publisher, &floatmsg, NULL));
-  right_motor.move(r_percent_speed);
+  right_motor.move_percent(r_percent_speed);
 
 }
 
@@ -140,8 +91,8 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {
   RCLC_UNUSED(last_call_time);
   if (timer != NULL) {
-    left_motor.move(0);
-    right_motor.move(0);
+    left_motor.move_percent(0);
+    right_motor.move_percent(0);
     floatmsg.data = 999;
     digitalWrite(LED_PIN, HIGH);
   }
