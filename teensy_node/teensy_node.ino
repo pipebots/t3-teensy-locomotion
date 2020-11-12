@@ -244,7 +244,6 @@ void setup() {
 
   // create timer, to stop robot if no commands are recieved
   deadman_timer = rcl_get_zero_initialized_timer();
-  const unsigned int deadman_timeout = 500;
   RCCHECK(rclc_timer_init_default(
     &deadman_timer,
     &support,
