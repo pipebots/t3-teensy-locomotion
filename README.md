@@ -15,11 +15,17 @@ Then clone this repo and upload the `.ino` file to the Teensy via the Arduino ID
 
 ## Config
 The `config.h` file is used to set the parameters of the robot, edit this for your hardware.
-Currently the motor drivers pin config is for SN754410 H-Bridges.
+This support two types of motor driver:
+- H Bridge (SN754410 in my case)
+	- `driver_type = h_bridge`
+	- Three pin numbers need setting; Enable and input 1 & 2 of the bridge.
+- Direction and Speed style motor drivers
+	- `driver_type = pwm_dir`
+	- Two pin numbers need setting; PWM(or speed) and Direction pins.
 
 ## Usage
 You need to send Twist messages to command the robot, I used a joystick and [teleop_twist_joy](https://github.com/ros2/teleop_twist_joy/tree/foxy) for this, but you could just use a keyboard package instead. See [these notes](https://n-fry.gitbook.io/ros2-notes/package-tests/teleop) for ROS2 teleop options.
 
 ## Subscribed Topics
-- `cmd_vel (geometry_msgs/msg/Twist)` 
+- `cmd_vel (geometry_msgs/msg/Twist)`
 	- Command velocity messages. Only the Linear X and Angular Z velocities are used.
