@@ -1,6 +1,10 @@
 /*
 *  Robot & Motor Configuration
 */
+#include "motor.h"
+
+#define LED_PIN 13
+
 const unsigned int deadman_timeout = 500;
 
 const float max_speed = 1.0;

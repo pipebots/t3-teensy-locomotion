@@ -1,6 +1,6 @@
 #include "Arduino.h"
 #include "motor.h"
-#include "error.h"
+#include "errors.h"
 
 /*
 * @brief Create motor and config the type of driver it is connected to
@@ -32,7 +32,7 @@ void Motor::setup(int pin_speed, int pin_1, int pin_2, int dead_zone){
   else{
     //TODO: add proper reporting
     //Error: Driver type and numer of pins initialised do not match
-    error_loop();
+    config_error();
   }
 }
 
@@ -55,7 +55,7 @@ void Motor::setup(int pin_speed, int pin_dir, int dead_zone){
   else{
     //TODO: add proper reporting
     //Error: Driver type and numer of pins initialised do not match
-    error_loop();
+    config_error();
   }
 }
 

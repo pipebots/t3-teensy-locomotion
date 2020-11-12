@@ -19,7 +19,7 @@
 #include "robot_driver.h"
 #include "motor.h"
 #include "config.h"
-#include "error.h"
+#include "errors.h"
 
 rcl_subscription_t subscriber;
 rcl_publisher_t publisher;
@@ -36,26 +36,12 @@ rcl_allocator_t allocator;
 rcl_node_t node;
 rcl_timer_t deadman_timer;
 
-#define LED_PIN 13
-
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
-#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(left_motor, right_motor);}}
+#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(left_motor, right_motor);}}
 
 RobotDriver robot(max_speed, wheel_base); //TODO set as parameter externally
 Motor left_motor(left_driver);
 Motor right_motor(right_driver);
-
-//flash for 5 second then restart in attempt to reconnect
-void error_loop(){
-  //stop motors
-  left_motor.move_fwd(0);
-  right_motor.move_fwd(0);
-  for(int i = 0; i <=50; i++){
-    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-    delay(100);
-  }
-  SCB_AIRCR = 0x05FA0004; //restart teensy to try to reconnect
-}
 
 //void vel_received_callback(const geometry_msgs__msg__Twist msg) //const void * msgin)
 void vel_received_callback(const void * msgin)
