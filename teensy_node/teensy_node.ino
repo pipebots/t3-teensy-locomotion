@@ -41,8 +41,8 @@ rcl_timer_t deadman_timer;
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
 
 RobotDriver robot(max_speed, wheel_base); //TODO set as parameter externally
-Motor left_motor;
-Motor right_motor;
+Motor left_motor(h_bridge);
+Motor right_motor(h_bridge);
 
 //flash for 5 second then restart in attempt to reconnect
 void error_loop(){

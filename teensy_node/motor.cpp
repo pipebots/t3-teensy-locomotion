@@ -1,16 +1,23 @@
 #include "Arduino.h"
 #include "motor.h"
 
+/*
+* @brief Create motor and config the type of driver it is connected to
+* @param driver Either a h_bridge or pwm_dir style driver.
+*/
+Motor::Motor(driver_type driver){
+  driver_type_ = driver;
+}
+
 /**
-* @brief Set pin numbers and pin modes
-* @note Currently for SN754410 h-bridge
-* @param enable Enable pin for H-Bridge
+* @brief Set pin numbers and pin modes for SN754410 h-bridge
+* @param pin_speed Enable pin for H-Bridge
 * @param pin_1 H-Bridge pin 1
 * @param pin_2 H-Bridge pin 2
 * @param dead_zone Threshold below which the motor command signal will be pulled to zero.
 */
-void Motor::setup(int enable, int pin_1, int pin_2, int dead_zone){
-  pin_en_ = enable;
+void Motor::setup(int pin_speed, int pin_1, int pin_2, int dead_zone){
+  pin_en_ = pin_speed;
   pin_A_ = pin_1;
   pin_B_ = pin_2;
   deadzone_ = dead_zone;
@@ -19,6 +26,22 @@ void Motor::setup(int enable, int pin_1, int pin_2, int dead_zone){
   pinMode(pin_en_, OUTPUT);
   pinMode(pin_A_, OUTPUT);
   pinMode(pin_B_, OUTPUT);
+}
+
+/**
+* @brief Set pin numbers and pin modes for motor drivers with PWM and Direction pins.
+* @param pin_speed PWM or Speed pin of motor driver
+* @param pin_dir Direction pin of motor driver
+* @param dead_zone Threshold below which the motor command signal will be pulled to zero.
+*/
+void Motor::setup(int pin_speed, int pin_dir, int dead_zone){
+  pin_en_ = pin_speed;
+  pin_A_ = pin_dir;
+  deadzone_ = dead_zone;
+
+  // set digital i/o pins as outputs:
+  pinMode(pin_en_, OUTPUT);
+  pinMode(pin_A_, OUTPUT);
 }
 
 /**
@@ -38,13 +61,45 @@ void Motor::move_percent(int percent_speed){
 
   // set direction
   if(percent_speed >= 0){
-    digitalWrite(pin_A_, HIGH);
-    digitalWrite(pin_B_, LOW);
+    move_fwd(pwm);
   }
   else{
-    digitalWrite(pin_A_, LOW);
-    digitalWrite(pin_B_, HIGH);
+    move_rev(pwm);
+  }
 
+}
+
+/**
+* @brief Make the motor turn forwards
+* @param pwm Motor speed as PWM signal, 0-255.
+*/
+void Motor::move_fwd(int pwm){
+  switch(driver_type_){
+    case h_bridge:
+      digitalWrite(pin_A_, HIGH);
+      digitalWrite(pin_B_, LOW);
+      break;
+    case pwm_dir:
+      digitalWrite(pin_A_, HIGH);
+      break;
+  }
+  // set speed
+  analogWrite(pin_en_, pwm);
+}
+
+/**
+* @brief Make the motor turn backwards (reverse)
+* @param pwm Motor speed as PWM signal, 0-255.
+*/
+void Motor::move_rev(int pwm){
+  switch(driver_type_){
+    case h_bridge:
+      digitalWrite(pin_A_, LOW);
+      digitalWrite(pin_B_, HIGH);
+      break;
+    case pwm_dir:
+      digitalWrite(pin_A_, LOW);
+      break;
   }
   // set speed
   analogWrite(pin_en_, pwm);
