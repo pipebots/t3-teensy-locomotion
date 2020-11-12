@@ -17,15 +17,22 @@ Motor::Motor(driver_type driver){
 * @param dead_zone Threshold below which the motor command signal will be pulled to zero.
 */
 void Motor::setup(int pin_speed, int pin_1, int pin_2, int dead_zone){
-  pin_en_ = pin_speed;
-  pin_A_ = pin_1;
-  pin_B_ = pin_2;
-  deadzone_ = dead_zone;
+  if(driver_type_ == h_bridge){
+    pin_en_ = pin_speed;
+    pin_A_ = pin_1;
+    pin_B_ = pin_2;
+    deadzone_ = dead_zone;
 
-  // set digital i/o pins as outputs:
-  pinMode(pin_en_, OUTPUT);
-  pinMode(pin_A_, OUTPUT);
-  pinMode(pin_B_, OUTPUT);
+    // set digital i/o pins as outputs:
+    pinMode(pin_en_, OUTPUT);
+    pinMode(pin_A_, OUTPUT);
+    pinMode(pin_B_, OUTPUT);
+  }
+  else{
+    //TODO: add proper reporting
+    //Error: Driver type and numer of pins initialised do not match
+    error_loop();
+  }
 }
 
 /**
@@ -35,13 +42,20 @@ void Motor::setup(int pin_speed, int pin_1, int pin_2, int dead_zone){
 * @param dead_zone Threshold below which the motor command signal will be pulled to zero.
 */
 void Motor::setup(int pin_speed, int pin_dir, int dead_zone){
-  pin_en_ = pin_speed;
-  pin_A_ = pin_dir;
-  deadzone_ = dead_zone;
+  if(driver_type_ == pwm_dir){
+    pin_en_ = pin_speed;
+    pin_A_ = pin_dir;
+    deadzone_ = dead_zone;
 
-  // set digital i/o pins as outputs:
-  pinMode(pin_en_, OUTPUT);
-  pinMode(pin_A_, OUTPUT);
+    // set digital i/o pins as outputs:
+    pinMode(pin_en_, OUTPUT);
+    pinMode(pin_A_, OUTPUT);
+  }
+  else{
+    //TODO: add proper reporting
+    //Error: Driver type and numer of pins initialised do not match
+    error_loop();
+  }
 }
 
 /**
