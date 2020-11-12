@@ -30,6 +30,6 @@ void config_error(){
     digitalWrite(LED_PIN, HIGH);
     delay(100);
     digitalWrite(LED_PIN, LOW);
-    delay(300);
+    delay(500);
   }
 }
