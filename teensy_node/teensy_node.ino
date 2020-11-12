@@ -19,6 +19,7 @@
 #include "robot_driver.h"
 #include "motor.h"
 #include "config.h"
+#include "error.h"
 
 rcl_subscription_t subscriber;
 rcl_publisher_t publisher;
@@ -47,8 +48,8 @@ Motor right_motor(right_driver);
 //flash for 5 second then restart in attempt to reconnect
 void error_loop(){
   //stop motors
-  left_motor.move_percent(0);
-  right_motor.move_percent(0);
+  left_motor.move_fwd(0);
+  right_motor.move_fwd(0);
   for(int i = 0; i <=50; i++){
     digitalWrite(LED_PIN, !digitalRead(LED_PIN));
     delay(100);
