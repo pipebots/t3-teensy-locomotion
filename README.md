@@ -34,7 +34,7 @@ You need to send Twist messages to command the robot, I used a joystick and [tel
 # Error Codes
 The onboard LED is used to signal the state of the board.
 ````
-LED         |	Status              |
+LED         |	Status            |
 ------------|---------------------|
 Off         | Ok                  |
 On          | Message Timeout     |
