@@ -13,8 +13,8 @@
 #include <rclc/executor.h>
 
 #include <std_msgs/msg/float64.h>
-#include <diagnostic_msgs/msg/diagnostic_status.h>
-#include <diagnostic_msgs/msg/diagnostic_array.h>
+#include <std_msgs/msg/string.h>
+#include <diagnostic_msgs/msg/key_value.h>
 #include <geometry_msgs/msg/twist.h>
 #include "robot_driver.h"
 #include "motor.h"
@@ -27,8 +27,8 @@ rcl_publisher_t status_publisher;
 
 geometry_msgs__msg__Twist msg;
 std_msgs__msg__Float64 floatmsg;
-diagnostic_msgs__msg__DiagnosticArray dia_array;
-diagnostic_msgs__msg__DiagnosticStatus * robot_status;
+diagnostic_msgs__msg__KeyValue key_val;
+std_msgs__msg__String key_msg;
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -67,10 +67,11 @@ void vel_received_callback(const void * msgin)
 
   //move motors
   left_motor.move_percent(l_percent_speed);
+  right_motor.move_percent(r_percent_speed);
   floatmsg.data = l_percent_speed;
   RCSOFTCHECK(rcl_publish(&publisher, &floatmsg, NULL));
-  right_motor.move_percent(r_percent_speed);
 
+  RCSOFTCHECK(rcl_publish(&status_publisher, &key_val, NULL));
 }
 
 // If no commands are recieved this executes and sets motors to 0
@@ -81,6 +82,7 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
     left_motor.move_percent(0);
     right_motor.move_percent(0);
     floatmsg.data = 999;
+    RCSOFTCHECK(rcl_publish(&publisher, &floatmsg, NULL));
     digitalWrite(LED_PIN, HIGH);
   }
 }
@@ -89,31 +91,28 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 * @brief Fills out the diagnostic message structure with the defualt values
 */
 void init_debug(){
-  robot_status =   diagnostic_msgs__msg__DiagnosticStatus__create();
-  diagnostic_msgs__msg__DiagnosticStatus__init(robot_status);
-  //char bot_name = "Mobile Base";
-  //rosidl_generator_c__DiagnosticStatus__assign(robot_status->name,bot_name, sizeof(bot_name));
-//  robot_status->name = rosidl_generator_c("Mobile Base");
-  //robot_status.level = diagnostic_msgs::DiagnosticStatus::OK;
-  /*  robot_status.message = "Everything seem to be ok.";
-    diagnostic_msgs::KeyValue emergency;
-    emergency.key = "Emgergencystop hit";
-    emergency.value = "false";
-    diagnostic_msgs::KeyValue exited_normally;
-    emergency.key = "Exited normally";
-    emergency.value = "true";
+  //robot_status =   diagnostic_msgs__msg__DiagnosticStatus__create();
+  //key_msg = diagnostic_msgs__msg__KeyValue__create();
+  diagnostic_msgs__msg__KeyValue__init(&key_val);
+  std_msgs__msg__String__init(&key_msg);
 
-    robot_status.values.push_back(emergency);
-    robot_status.values.push_back(exited_normally);
+/*  robot_status->name.data = (char*)malloc(100*sizeof(char));
+  char string1[] = "r2d2";
+  memcpy(robot_status->name.data, string1, strlen(string1+1));
+  robot_status->name.size = strlen(robot_status->name.data);
+  robot_status->name.capacity = 100;
+*/
 
-    diagnostic_msgs::DiagnosticStatus  eth_status;
-    eth_status.name = "EtherCAT Master";
-    eth_status.level = diagnostic_msgs::DiagnosticStatus::OK;
-    eth_status.message = "Running";
+  const unsigned int NAME_MSG_SIZE = 20;
+  char pub_string[NAME_MSG_SIZE];
+  key_msg.data.data = malloc(NAME_MSG_SIZE);
+  key_msg.data.capacity = NAME_MSG_SIZE;
+  snprintf(key_msg.data.data, key_msg.data.capacity, "Hello World!");
+  key_msg.data.size = strlen(key_msg.data.data);
 
-    dia_array.status.push_back(robot_status);
-    dia_array.status.push_back(eth_status);
-  */
+  key_val.key.capacity = NAME_MSG_SIZE;
+  snprintf(key_val.key.data, key_msg.data.capacity, "test");
+  key_val.key.size = strlen(key_msg.data.data);
 }
 void setup() {
 
@@ -154,7 +153,8 @@ void setup() {
   RCCHECK(rclc_publisher_init_default(
     &status_publisher,
     &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, DiagnosticStatus),
+    //ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, KeyValue),
+    ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, KeyValue),
     "diagnostics"));
 
   // create timer, to stop robot if no commands are recieved

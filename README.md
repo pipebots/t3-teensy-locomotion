@@ -42,7 +42,7 @@ Flash [1:1] | Communication Error |
 Flash [5:1] | Configuration Error |
 ````
 ## Message/Deadman Timeout
-As a safety feature there is an internal timer which sets the motors to stationary if no message is received on the `cmd_vel` topic for 500ms.
+As a safety feature there is an internal timer which sets the motors to stationary if no message is received on the `cmd_vel` topic for 500ms (can change in config).
 
 ## Communication Error
 If the board looses it's connection to the micro-ros agent then it will enter this state. The LED will blink rapidly with equal on/off times for 5 seconds. The board will then reset in an attempt to reconnect.

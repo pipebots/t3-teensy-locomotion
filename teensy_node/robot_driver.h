@@ -10,7 +10,7 @@
 // wheel_base_ in m
 class RobotDriver{
     float max_speed_, wheel_base_;
-  public:
+ public:
     RobotDriver(float, float);
     void wheel_speeds(float, float);
     int percent_speed(float);
