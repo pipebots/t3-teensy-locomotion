@@ -12,14 +12,15 @@
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
 
-#include <std_msgs/msg/float64.h>
-#include <std_msgs/msg/string.h>
-#include <diagnostic_msgs/msg/key_value.h>
-#include <geometry_msgs/msg/twist.h>
 #include "robot_driver.h"
 #include "motor.h"
 #include "config.h"
 #include "errors.h"
+
+#include <std_msgs/msg/float64.h>
+#include <std_msgs/msg/string.h>
+#include <diagnostic_msgs/msg/key_value.h>
+#include <geometry_msgs/msg/twist.h>
 
 rcl_subscription_t subscriber;
 rcl_publisher_t publisher;
@@ -27,8 +28,8 @@ rcl_publisher_t status_publisher;
 
 geometry_msgs__msg__Twist msg;
 std_msgs__msg__Float64 floatmsg;
-diagnostic_msgs__msg__KeyValue key_val;
-std_msgs__msg__String key_msg;
+diagnostic_msgs__msg__KeyValue deadman_keyval;
+std_msgs__msg__String string_msg;
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -70,8 +71,8 @@ void vel_received_callback(const void * msgin)
   right_motor.move_percent(r_percent_speed);
   floatmsg.data = l_percent_speed;
   RCSOFTCHECK(rcl_publish(&publisher, &floatmsg, NULL));
-
-  RCSOFTCHECK(rcl_publish(&status_publisher, &key_val, NULL));
+  snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Off");
+  RCSOFTCHECK(rcl_publish(&status_publisher, &deadman_keyval, NULL));
 }
 
 // If no commands are recieved this executes and sets motors to 0
@@ -82,7 +83,9 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
     left_motor.move_percent(0);
     right_motor.move_percent(0);
     floatmsg.data = 999;
+    snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Triggered");
     RCSOFTCHECK(rcl_publish(&publisher, &floatmsg, NULL));
+    RCSOFTCHECK(rcl_publish(&status_publisher, &deadman_keyval, NULL));
     digitalWrite(LED_PIN, HIGH);
   }
 }
@@ -93,27 +96,18 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 void init_debug(){
   //robot_status =   diagnostic_msgs__msg__DiagnosticStatus__create();
   //key_msg = diagnostic_msgs__msg__KeyValue__create();
-  diagnostic_msgs__msg__KeyValue__init(&key_val);
-  std_msgs__msg__String__init(&key_msg);
+  std_msgs__msg__String__init(&string_msg); //if i remove this the comms is unreliable?! must me some memory initilasation thing?
+  diagnostic_msgs__msg__KeyValue__init(&deadman_keyval);
+  const unsigned int KEY_SIZE = 20;
+  deadman_keyval.key.capacity = KEY_SIZE;
+  snprintf(deadman_keyval.key.data, deadman_keyval.key.capacity, "Deadman Timer");
+  deadman_keyval.key.size = strlen(deadman_keyval.key.data);
 
-/*  robot_status->name.data = (char*)malloc(100*sizeof(char));
-  char string1[] = "r2d2";
-  memcpy(robot_status->name.data, string1, strlen(string1+1));
-  robot_status->name.size = strlen(robot_status->name.data);
-  robot_status->name.capacity = 100;
-*/
-
-  const unsigned int NAME_MSG_SIZE = 20;
-  char pub_string[NAME_MSG_SIZE];
-  key_msg.data.data = malloc(NAME_MSG_SIZE);
-  key_msg.data.capacity = NAME_MSG_SIZE;
-  snprintf(key_msg.data.data, key_msg.data.capacity, "Hello World!");
-  key_msg.data.size = strlen(key_msg.data.data);
-
-  key_val.key.capacity = NAME_MSG_SIZE;
-  snprintf(key_val.key.data, key_msg.data.capacity, "test");
-  key_val.key.size = strlen(key_msg.data.data);
+  deadman_keyval.value.capacity = KEY_SIZE;
+  snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Initilised");
+  deadman_keyval.value.size = strlen(deadman_keyval.value.data);
 }
+
 void setup() {
 
   pinMode(LED_PIN, OUTPUT);
@@ -153,7 +147,6 @@ void setup() {
   RCCHECK(rclc_publisher_init_default(
     &status_publisher,
     &node,
-    //ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, KeyValue),
     ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, KeyValue),
     "diagnostics"));
 
