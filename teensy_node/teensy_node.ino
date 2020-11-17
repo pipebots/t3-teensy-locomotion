@@ -82,8 +82,11 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
   if (timer != NULL) {
     left_motor.move_percent(0);
     right_motor.move_percent(0);
+
     floatmsg.data = 999;
     snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Triggered");
+    deadman_keyval.value.size = strlen(deadman_keyval.value.data);
+
     RCSOFTCHECK(rcl_publish(&publisher, &floatmsg, NULL));
     RCSOFTCHECK(rcl_publish(&status_publisher, &deadman_keyval, NULL));
     digitalWrite(LED_PIN, HIGH);
@@ -98,13 +101,19 @@ void init_debug(){
   //key_msg = diagnostic_msgs__msg__KeyValue__create();
   std_msgs__msg__String__init(&string_msg); //if i remove this the comms is unreliable?! must me some memory initilasation thing?
   diagnostic_msgs__msg__KeyValue__init(&deadman_keyval);
-  const unsigned int KEY_SIZE = 20;
+  const unsigned int KEY_SIZE = 200;
+  deadman_keyval.key.data = (char*)malloc(KEY_SIZE*sizeof(char));
+  deadman_keyval.key.size = 0;
   deadman_keyval.key.capacity = KEY_SIZE;
+
   snprintf(deadman_keyval.key.data, deadman_keyval.key.capacity, "Deadman Timer");
   deadman_keyval.key.size = strlen(deadman_keyval.key.data);
 
+  deadman_keyval.value.data = (char*)malloc(KEY_SIZE*sizeof(char));
+  deadman_keyval.value.size = 0;
   deadman_keyval.value.capacity = KEY_SIZE;
-  snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Initilised");
+
+  snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Init");
   deadman_keyval.value.size = strlen(deadman_keyval.value.data);
 }
 
