@@ -53,6 +53,20 @@ void timer2_callback(rcl_timer_t * timer, int64_t last_call_time)
   }
 }
 
+void init_debug(){
+
+  diagnostic_msgs__msg__KeyValue__init(&deadman_keyval);
+  const unsigned int KEY_SIZE = 20;
+  deadman_keyval.key.capacity = KEY_SIZE;
+  snprintf(deadman_keyval.key.data, deadman_keyval.key.capacity, "Deadman Timer");
+  deadman_keyval.key.size = strlen(deadman_keyval.key.data);
+
+
+  deadman_keyval.value.capacity = KEY_SIZE;
+  snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "value");
+  deadman_keyval.value.size = strlen(deadman_keyval.value.data);
+}
+
 void setup() {
 
   pinMode(LED_PIN, OUTPUT);
@@ -113,17 +127,7 @@ void setup() {
   RCCHECK(rclc_executor_add_timer(&executor, &timer));
   RCCHECK(rclc_executor_add_timer(&executor, &timer2));
   msg.data = 0;
-
-  diagnostic_msgs__msg__KeyValue__init(&deadman_keyval);
-  const unsigned int KEY_SIZE = 20;
-  deadman_keyval.key.capacity = KEY_SIZE;
-  snprintf(deadman_keyval.key.data, deadman_keyval.key.capacity, "Deadman Timer");
-  deadman_keyval.key.size = strlen(deadman_keyval.key.data);
-
-
-  deadman_keyval.value.capacity = KEY_SIZE;
-  snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "value");
-  deadman_keyval.value.size = strlen(deadman_keyval.value.data);
+  init_debug();
 
 }
 
