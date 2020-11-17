@@ -101,7 +101,7 @@ void init_debug(){
   //key_msg = diagnostic_msgs__msg__KeyValue__create();
   std_msgs__msg__String__init(&string_msg); //if i remove this the comms is unreliable?! must me some memory initilasation thing?
   diagnostic_msgs__msg__KeyValue__init(&deadman_keyval);
-  const unsigned int KEY_SIZE = 200;
+  const unsigned int KEY_SIZE = 20;
   deadman_keyval.key.data = (char*)malloc(KEY_SIZE*sizeof(char));
   deadman_keyval.key.size = 0;
   deadman_keyval.key.capacity = KEY_SIZE;

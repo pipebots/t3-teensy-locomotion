@@ -50,6 +50,7 @@ void timer2_callback(rcl_timer_t * timer, int64_t last_call_time)
     char snum[5];
     itoa(msg.data, snum, 10);
     snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, snum);
+    deadman_keyval.value.size = strlen(deadman_keyval.value.data);
   }
 }
 
@@ -57,13 +58,18 @@ void init_debug(){
 
   diagnostic_msgs__msg__KeyValue__init(&deadman_keyval);
   const unsigned int KEY_SIZE = 20;
+  deadman_keyval.key.data = (char*)malloc(KEY_SIZE*sizeof(char));
+  deadman_keyval.key.size = 0;
   deadman_keyval.key.capacity = KEY_SIZE;
+
   snprintf(deadman_keyval.key.data, deadman_keyval.key.capacity, "Deadman Timer");
   deadman_keyval.key.size = strlen(deadman_keyval.key.data);
 
-
+  deadman_keyval.value.data = (char*)malloc(KEY_SIZE*sizeof(char));
+  deadman_keyval.value.size = 0;
   deadman_keyval.value.capacity = KEY_SIZE;
-  snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "value");
+
+  snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Init");
   deadman_keyval.value.size = strlen(deadman_keyval.value.data);
 }
 
