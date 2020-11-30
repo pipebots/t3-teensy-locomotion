@@ -31,16 +31,26 @@ You need to send Twist messages to command the robot, I used a joystick and [tel
 - `cmd_vel (geometry_msgs/msg/Twist)`
 	- Command velocity messages. Only the Linear X and Angular Z velocities are used.
 
+# Published Topics
+- `diagnostics (diagnostic_msgs/msg/DiagnosticStatus)`
+	- Status and associated messages.
+	- Published at 1Hz (edit in config).
+	- Includes key-value pairs:
+		| Name| Values |
+		|-----|--------|
+		| Deadman timer| Off / Triggered |
+		| Emergency Stop | Off / On |
+
 # Error Codes
-The onboard LED is used to signal the state of the board.
-````
+The onboard LED is used to signal the state of the board. These errors are also reported back via the diagnostics topic.
+
 LED         |	Status              |
 ------------|---------------------|
 Off         | Ok                  |
 On          | Message Timeout     |
 Flash [1:1] | Communication Error |
 Flash [5:1] | Configuration Error |
-````
+
 ## Message/Deadman Timeout
 As a safety feature there is an internal timer which sets the motors to stationary if no message is received on the `cmd_vel` topic for 500ms (can change in config).
 
