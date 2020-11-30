@@ -17,19 +17,15 @@
 #include "config.h"
 #include "errors.h"
 
-#include <std_msgs/msg/float64.h>
-#include <std_msgs/msg/string.h>
+
 #include <diagnostic_msgs/msg/key_value.h>
 #include <geometry_msgs/msg/twist.h>
 
-rcl_subscription_t subscriber;
-rcl_publisher_t publisher;
+rcl_subscription_t cmd_subscriber;
 rcl_publisher_t status_publisher;
 
-geometry_msgs__msg__Twist msg;
-std_msgs__msg__Float64 floatmsg;
+geometry_msgs__msg__Twist cmd_twist;
 diagnostic_msgs__msg__KeyValue deadman_keyval;
-std_msgs__msg__String string_msg;
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -43,7 +39,6 @@ rcl_timer_t deadman_timer;
 RobotDriver robot(max_speed, wheel_base);
 Motor left_motor(left_driver);
 Motor right_motor(right_driver);
-
 
 void vel_received_callback(const void * msgin)
 {
@@ -69,8 +64,6 @@ void vel_received_callback(const void * msgin)
   //move motors
   left_motor.move_percent(l_percent_speed);
   right_motor.move_percent(r_percent_speed);
-  floatmsg.data = l_percent_speed;
-  RCSOFTCHECK(rcl_publish(&publisher, &floatmsg, NULL));
   snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Off");
   RCSOFTCHECK(rcl_publish(&status_publisher, &deadman_keyval, NULL));
 }
@@ -83,11 +76,9 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
     left_motor.move_percent(0);
     right_motor.move_percent(0);
 
-    floatmsg.data = 999;
     snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Triggered");
     deadman_keyval.value.size = strlen(deadman_keyval.value.data);
 
-    RCSOFTCHECK(rcl_publish(&publisher, &floatmsg, NULL));
     RCSOFTCHECK(rcl_publish(&status_publisher, &deadman_keyval, NULL));
     digitalWrite(LED_PIN, HIGH);
   }
@@ -97,10 +88,6 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 * @brief Fills out the diagnostic message structure with the defualt values
 */
 void init_debug(){
-
-  //if i remove this the comms is unreliable?! must me some memory initilasation thing?
-  std_msgs__msg__String__init(&string_msg);
-
   //Init key_val message
   diagnostic_msgs__msg__KeyValue__init(&deadman_keyval);
 
@@ -143,21 +130,14 @@ void setup() {
   node = rcl_get_zero_initialized_node();
   rcl_node_options_t node_ops = rcl_node_get_default_options();
   node_ops.domain_id = 20;
-  RCCHECK(rclc_node_init_with_options(&node, "micro_ros_arduino_node", "", &support, &node_ops));
+  RCCHECK(rclc_node_init_with_options(&node, "teensy_node", "", &support, &node_ops));
 
   // create subscriber
   RCCHECK(rclc_subscription_init_default(
-    &subscriber,
+    &cmd_subscriber,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
     "cmd_vel"));
-
-  // create publisher - currently for debug
-  RCCHECK(rclc_publisher_init_default(
-    &publisher,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float64),
-    "micro_ros_arduino_node_publisher"));
 
   // create Diagnostic Status publisher
   RCCHECK(rclc_publisher_init_default(
@@ -182,7 +162,7 @@ void setup() {
 
   unsigned int rcl_wait_timeout = 1000;   // in ms
   RCCHECK(rclc_executor_set_timeout(&executor, RCL_MS_TO_NS(rcl_wait_timeout)));
-  RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &vel_received_callback, ON_NEW_DATA));
+  RCCHECK(rclc_executor_add_subscription(&executor, &cmd_subscriber, &cmd_twist, &vel_received_callback, ON_NEW_DATA));
   RCCHECK(rclc_executor_add_timer(&executor, &deadman_timer));
 
   init_debug();
