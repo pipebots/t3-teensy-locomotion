@@ -199,8 +199,8 @@ void setup() {
     "cmd_vel"));
 
   // create Diagnostic Status publisher
-  //RCCHECK(rclc_publisher_init_default(
-  RCCHECK(rclc_publisher_init_best_effort(
+  RCCHECK(rclc_publisher_init_default(
+  //RCCHECK(rclc_publisher_init_best_effort(
     &status_publisher,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, DiagnosticStatus),
