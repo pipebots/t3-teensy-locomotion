@@ -37,6 +37,7 @@ rclc_support_t support;
 rcl_allocator_t allocator;
 rcl_node_t node;
 rcl_timer_t deadman_timer;
+rcl_timer_t diagnostic_timer;
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(left_motor, right_motor);}}
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(left_motor, right_motor);}}
@@ -70,12 +71,8 @@ void vel_received_callback(const void * msgin)
   left_motor.move_percent(l_percent_speed);
   right_motor.move_percent(r_percent_speed);
   snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Off");
-  //RCSOFTCHECK(rcl_publish(&status_publisher, &deadman_keyval, NULL));
-
-  key_array.data[0] = deadman_keyval;
-  status.values = key_array;
-  RCSOFTCHECK(rcl_publish(&status_publisher, &status, NULL));
-
+  snprintf(status.message.data, status.message.capacity, "messages recieved from /cmd_vel");
+  status.level = diagnostic_msgs__msg__DiagnosticStatus__OK;
 }
 
 // If no commands are recieved this executes and sets motors to 0
@@ -87,16 +84,28 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
     right_motor.move_percent(0);
 
     snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Triggered");
-    deadman_keyval.value.size = strlen(deadman_keyval.value.data);
-
-//    RCSOFTCHECK(rcl_publish(&status_publisher, &deadman_keyval, NULL));
-
-    key_array.data[0] = deadman_keyval;
-    status.values = key_array;
-    RCSOFTCHECK(rcl_publish(&status_publisher, &status, NULL));
-
+    snprintf(status.message.data, status.message.capacity, "No messages recieved from /cmd_vel for 500ms");
+    status.level = diagnostic_msgs__msg__DiagnosticStatus__WARN;
     digitalWrite(LED_PIN, HIGH);
   }
+}
+
+// Publish diaganostic status messages
+void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
+{
+  RCLC_UNUSED(last_call_time);
+  // update sizes
+  deadman_keyval.value.size = strlen(deadman_keyval.value.data);
+  estop.value.size = strlen(estop.value.data);
+  status.message.size = strlen(status.message.data);
+
+  // update key value array
+  key_array.data[0] = deadman_keyval;
+  key_array.data[1] = estop;
+  status.values = key_array;
+
+  RCSOFTCHECK(rcl_publish(&status_publisher, &status, NULL));
+
 }
 
 /**
@@ -139,7 +148,7 @@ void init_debug(){
   estop.value.size = strlen(estop.value.data);
 
   diagnostic_msgs__msg__DiagnosticStatus__init(&status);
-  status.level = 0; // OK
+  status.level = diagnostic_msgs__msg__DiagnosticStatus__OK;
 
   status.name.data = (char*)malloc(20*sizeof(char));
   status.name.capacity = 20;
@@ -206,9 +215,17 @@ void setup() {
     RCL_MS_TO_NS(deadman_timeout),
     deadman_timer_callback));
 
+  // create timer, to pub diagnostics at 1hz
+  diagnostic_timer = rcl_get_zero_initialized_timer();
+  RCCHECK(rclc_timer_init_default(
+    &diagnostic_timer,
+    &support,
+    RCL_MS_TO_NS(1000/diagnostic_frequency), // convert Hz to ms
+    diagnostic_timer_callback));
+
   // create executor
   // total number of handles = #subscriptions + #timers
-  unsigned int num_handles = 1 + 1;
+  unsigned int num_handles = 1 + 2;
   executor = rclc_executor_get_zero_initialized_executor();
   RCCHECK(rclc_executor_init(&executor, &support.context, num_handles, &allocator));
 
@@ -216,6 +233,7 @@ void setup() {
   RCCHECK(rclc_executor_set_timeout(&executor, RCL_MS_TO_NS(rcl_wait_timeout)));
   RCCHECK(rclc_executor_add_subscription(&executor, &cmd_subscriber, &cmd_twist, &vel_received_callback, ON_NEW_DATA));
   RCCHECK(rclc_executor_add_timer(&executor, &deadman_timer));
+  RCCHECK(rclc_executor_add_timer(&executor, &diagnostic_timer));
 
   init_debug();
 }

@@ -5,7 +5,8 @@
 
 #define LED_PIN 13 //onboard LED
 
-const unsigned int deadman_timeout = 500; //ms
+const unsigned int deadman_timeout = 500; // ms
+const unsigned int diagnostic_frequency = 1; // Hz
 
 const float max_speed = 1.0; // m/s
 const float wheel_base = 0.08; // m
