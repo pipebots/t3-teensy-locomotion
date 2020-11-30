@@ -26,6 +26,7 @@ rcl_publisher_t status_publisher;
 
 geometry_msgs__msg__Twist cmd_twist;
 diagnostic_msgs__msg__KeyValue deadman_keyval;
+diagnostic_msgs__msg__KeyValue estop;
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -88,27 +89,40 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 * @brief Fills out the diagnostic message structure with the defualt values
 */
 void init_debug(){
-  //Init key_val message
+  // Init key_val message
   diagnostic_msgs__msg__KeyValue__init(&deadman_keyval);
+  diagnostic_msgs__msg__KeyValue__init(&estop);
 
-  //Init Key
+  // Init Dadman timer Key
   const unsigned int KEY_SIZE = 10;
   deadman_keyval.key.data = (char*)malloc(14*sizeof(char));
   deadman_keyval.key.size = 0;
   deadman_keyval.key.capacity = 14;
-
   // Use Key
   snprintf(deadman_keyval.key.data, deadman_keyval.key.capacity, "Deadman Timer");
   deadman_keyval.key.size = strlen(deadman_keyval.key.data);
-
   //Init Value
   deadman_keyval.value.data = (char*)malloc(4*sizeof(char));
   deadman_keyval.value.size = 0;
   deadman_keyval.value.capacity = KEY_SIZE;
-
   //Use Value
   snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Init");
   deadman_keyval.value.size = strlen(deadman_keyval.value.data);
+
+  // Init E stop Key
+  estop.key.data = (char*)malloc(15*sizeof(char));
+  estop.key.size = 0;
+  estop.key.capacity = 15;
+  // Use Key
+  snprintf(estop.key.data, estop.key.capacity, "Emergency Stop");
+  estop.key.size = strlen(estop.key.data);
+  //Init Value
+  estop.value.data = (char*)malloc(4*sizeof(char));
+  estop.value.size = 0;
+  estop.value.capacity = 4;
+  //Use Value
+  snprintf(estop.value.data, estop.value.capacity, "off");
+  estop.value.size = strlen(estop.value.data);
 }
 
 void setup() {
