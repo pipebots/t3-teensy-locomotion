@@ -2,6 +2,8 @@
 #include "errors.h"
 #include "config.h"
 
+
+
 /**
 * @brief Error loop for when communication is lost. R
 * Flashes on/off for 5 seconds, then resets board.
@@ -11,6 +13,11 @@ void coms_error(Motor& left, Motor& right) {
   left.move_fwd(0);
   right.move_fwd(0);
 
+  // no comms so unlikely this will be sent...
+//  snprintf(status.message.data, status.message.capacity,
+//           "Error: Communication with agent lost");
+//  status.level = diagnostic_msgs__msg__DiagnosticStatus__ERROR;
+
   // flash onboard LED
   for (int i = 0; i <=50; i++) {
     digitalWrite(LED_PIN, !digitalRead(LED_PIN));
@@ -18,18 +25,4 @@ void coms_error(Motor& left, Motor& right) {
   }
   // restart teensy to try to reconnect
   SCB_AIRCR = 0x05FA0004;
-}
-
-/**
-* @brief Error loop for when there is an error in the configuration.
-* Continually flashes long/short.
-*/
-void config_error() {
-  // flash onboard LED
-  while (1) {
-    digitalWrite(LED_PIN, HIGH);
-    delay(100);
-    digitalWrite(LED_PIN, LOW);
-    delay(500);
-  }
 }
