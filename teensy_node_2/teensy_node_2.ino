@@ -103,7 +103,7 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
   }
 }
 
-// Publish diaganostic status messages
+// Timer callback which publishes diaganostic status message at set interval
 void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {
   RCLC_UNUSED(last_call_time);
@@ -199,10 +199,10 @@ void setup() {
     "cmd_vel"));
 
   // create Diagnostic Status publisher
-  RCCHECK(rclc_publisher_init_default(
+  //RCCHECK(rclc_publisher_init_default(
+  RCCHECK(rclc_publisher_init_best_effort(
     &status_publisher,
     &node,
-    //ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, KeyValue),
     ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, DiagnosticStatus),
     "diagnostics"));
 
