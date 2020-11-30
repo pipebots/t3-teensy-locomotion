@@ -20,13 +20,17 @@
 
 #include <diagnostic_msgs/msg/key_value.h>
 #include <geometry_msgs/msg/twist.h>
+#include <diagnostic_msgs/msg/diagnostic_status.h>
 
 rcl_subscription_t cmd_subscriber;
 rcl_publisher_t status_publisher;
 
 geometry_msgs__msg__Twist cmd_twist;
+diagnostic_msgs__msg__DiagnosticStatus status;
 diagnostic_msgs__msg__KeyValue deadman_keyval;
 diagnostic_msgs__msg__KeyValue estop;
+diagnostic_msgs__msg__KeyValue__Sequence key_array;
+
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -66,7 +70,12 @@ void vel_received_callback(const void * msgin)
   left_motor.move_percent(l_percent_speed);
   right_motor.move_percent(r_percent_speed);
   snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Off");
-  RCSOFTCHECK(rcl_publish(&status_publisher, &deadman_keyval, NULL));
+  //RCSOFTCHECK(rcl_publish(&status_publisher, &deadman_keyval, NULL));
+
+  key_array.data[0] = deadman_keyval;
+  status.values = key_array;
+  RCSOFTCHECK(rcl_publish(&status_publisher, &status, NULL));
+
 }
 
 // If no commands are recieved this executes and sets motors to 0
@@ -80,7 +89,12 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
     snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Triggered");
     deadman_keyval.value.size = strlen(deadman_keyval.value.data);
 
-    RCSOFTCHECK(rcl_publish(&status_publisher, &deadman_keyval, NULL));
+//    RCSOFTCHECK(rcl_publish(&status_publisher, &deadman_keyval, NULL));
+
+    key_array.data[0] = deadman_keyval;
+    status.values = key_array;
+    RCSOFTCHECK(rcl_publish(&status_publisher, &status, NULL));
+
     digitalWrite(LED_PIN, HIGH);
   }
 }
@@ -121,8 +135,31 @@ void init_debug(){
   estop.value.size = 0;
   estop.value.capacity = 4;
   //Use Value
-  snprintf(estop.value.data, estop.value.capacity, "off");
+  snprintf(estop.value.data, estop.value.capacity, "Off");
   estop.value.size = strlen(estop.value.data);
+
+  diagnostic_msgs__msg__DiagnosticStatus__init(&status);
+  status.level = 0; // OK
+
+  status.name.data = (char*)malloc(20*sizeof(char));
+  status.name.capacity = 20;
+  snprintf(status.name.data, status.name.capacity, "Teensy Robot Driver");
+  status.name.size = strlen(status.name.data);
+
+  status.message.data = (char*)malloc(100*sizeof(char));
+  status.message.capacity = 100;
+  snprintf(status.message.data, status.message.capacity, "Initialised A-OKAY!");
+  status.message.size = strlen(status.message.data);
+
+  status.hardware_id.data = (char*)malloc(10*sizeof(char));
+  status.hardware_id.capacity = 10;
+  snprintf(status.hardware_id.data, status.hardware_id.capacity, "teensy3.2");
+  status.hardware_id.size = strlen(status.hardware_id.data);
+
+  diagnostic_msgs__msg__KeyValue__Sequence__init(&key_array, 2);
+  key_array.data[0] = deadman_keyval;
+  key_array.data[1] = estop;
+  status.values = key_array;
 }
 
 void setup() {
@@ -157,7 +194,8 @@ void setup() {
   RCCHECK(rclc_publisher_init_default(
     &status_publisher,
     &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, KeyValue),
+    //ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, KeyValue),
+    ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, DiagnosticStatus),
     "diagnostics"));
 
   // create timer, to stop robot if no commands are recieved
