@@ -17,10 +17,10 @@
 #include "config.h"
 #include "errors.h"
 
-
+#include <diagnostic_msgs/msg/diagnostic_status.h>
 #include <diagnostic_msgs/msg/key_value.h>
 #include <geometry_msgs/msg/twist.h>
-#include <diagnostic_msgs/msg/diagnostic_status.h>
+
 
 rcl_subscription_t cmd_subscriber;
 rcl_publisher_t status_publisher;
@@ -45,6 +45,19 @@ rcl_timer_t diagnostic_timer;
 RobotDriver robot(max_speed, wheel_base);
 Motor left_motor(left_driver);
 Motor right_motor(right_driver);
+
+void publish_status(){
+  deadman_keyval.value.size = strlen(deadman_keyval.value.data);
+  estop.value.size = strlen(estop.value.data);
+  status.message.size = strlen(status.message.data);
+
+  // update key value array
+  key_array.data[0] = deadman_keyval;
+  key_array.data[1] = estop;
+  status.values = key_array;
+
+  RCSOFTCHECK(rcl_publish(&status_publisher, &status, NULL));
+}
 
 void vel_received_callback(const void * msgin)
 {
@@ -94,18 +107,7 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {
   RCLC_UNUSED(last_call_time);
-  // update sizes
-  deadman_keyval.value.size = strlen(deadman_keyval.value.data);
-  estop.value.size = strlen(estop.value.data);
-  status.message.size = strlen(status.message.data);
-
-  // update key value array
-  key_array.data[0] = deadman_keyval;
-  key_array.data[1] = estop;
-  status.values = key_array;
-
-  RCSOFTCHECK(rcl_publish(&status_publisher, &status, NULL));
-
+  publish_status();
 }
 
 /**
@@ -178,9 +180,6 @@ void setup() {
 
   delay(2000);
 
-  left_motor.setup(left_pin_en, left_pin_a, left_pin_b, left_deadzone);
-  right_motor.setup(right_pin_en, right_pin_a, right_pin_b, right_deadzone);
-
   allocator = rcl_get_default_allocator();
 
   //create init_options
@@ -235,7 +234,44 @@ void setup() {
   RCCHECK(rclc_executor_add_timer(&executor, &deadman_timer));
   RCCHECK(rclc_executor_add_timer(&executor, &diagnostic_timer));
 
+
   init_debug();
+
+  // init motors
+  if (left_motor.setup(left_pin_en, left_pin_a, left_pin_b, left_deadzone) == true) {
+    // Setup sucessful
+    snprintf(status.message.data, status.message.capacity, "Left Motor Setup");
+    status.level = diagnostic_msgs__msg__DiagnosticStatus__OK;
+    publish_status();
+  } else {
+      snprintf(status.message.data, status.message.capacity, "Error: Left Motor - Driver type and number of pins initialised do not match");
+      status.level = diagnostic_msgs__msg__DiagnosticStatus__ERROR;
+      publish_status();
+      // block program and flash onboard LED
+      while (1) {
+        digitalWrite(LED_PIN, HIGH);
+        delay(100);
+        digitalWrite(LED_PIN, LOW);
+        delay(500);
+      }
+  }
+  if (right_motor.setup(right_pin_en, right_pin_a, right_pin_b, right_deadzone) == true){
+    // setup sucessful
+    snprintf(status.message.data, status.message.capacity, "Right Motor Setup");
+    status.level = diagnostic_msgs__msg__DiagnosticStatus__OK;
+    publish_status();
+  } else {
+    snprintf(status.message.data, status.message.capacity, "Error: Right Motor - Driver type and number of pins initialised do not match");
+    status.level = diagnostic_msgs__msg__DiagnosticStatus__ERROR;
+    publish_status();
+    // block program and flash onboard LED
+    while (1) {
+      digitalWrite(LED_PIN, HIGH);
+      delay(100);
+      digitalWrite(LED_PIN, LOW);
+      delay(500);
+    }
+  }
 }
 
 void loop() {

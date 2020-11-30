@@ -21,8 +21,8 @@ class Motor{
 
   public:
     Motor(driver_type);
-    void setup(int, int, int, int);
-    void setup(int, int, int);
+    bool setup(int, int, int, int);
+    bool setup(int, int, int);
     void move_percent(int);
     void move_fwd(int);
     void move_rev(int);
