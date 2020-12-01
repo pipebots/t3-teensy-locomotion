@@ -17,20 +17,28 @@
 #include "config.h"
 #include "errors.h"
 
+#include <diagnostic_msgs/msg/diagnostic_array.h>
 #include <diagnostic_msgs/msg/diagnostic_status.h>
 #include <diagnostic_msgs/msg/key_value.h>
 #include <geometry_msgs/msg/twist.h>
 
 
 rcl_subscription_t cmd_subscriber;
-rcl_publisher_t status_publisher;
+rcl_publisher_t diagnostics_publisher;
 
 geometry_msgs__msg__Twist cmd_twist;
-diagnostic_msgs__msg__DiagnosticStatus status;
+diagnostic_msgs__msg__DiagnosticStatus teensy_status;
+diagnostic_msgs__msg__DiagnosticStatus left_motor_status;
+diagnostic_msgs__msg__DiagnosticStatus right_motor_status;
+diagnostic_msgs__msg__DiagnosticStatus left_encoder_status;
+diagnostic_msgs__msg__DiagnosticStatus right_encoder_status;
+diagnostic_msgs__msg__DiagnosticStatus battery_status;
 diagnostic_msgs__msg__KeyValue deadman_keyval;
 diagnostic_msgs__msg__KeyValue estop;
-diagnostic_msgs__msg__KeyValue__Sequence key_array;
-
+diagnostic_msgs__msg__KeyValue headlights;
+diagnostic_msgs__msg__KeyValue__Sequence teensy_key_array;
+diagnostic_msgs__msg__DiagnosticStatus__Sequence status_array;
+diagnostic_msgs__msg__DiagnosticArray dia_array;
 
 rclc_executor_t executor;
 rclc_support_t support;
@@ -46,17 +54,36 @@ RobotDriver robot(max_speed, wheel_base);
 Motor left_motor(left_driver);
 Motor right_motor(right_driver);
 
-void publish_status(){
+void publish_diagnostics(){
+
+  // ensure size allocations are correct
+  // (safer to do all here but less efficient...does it matter?)
   deadman_keyval.value.size = strlen(deadman_keyval.value.data);
   estop.value.size = strlen(estop.value.data);
-  status.message.size = strlen(status.message.data);
+  headlights.value.size = strlen(headlights.value.data);
+  teensy_status.message.size = strlen(teensy_status.message.data);
+  left_motor_status.message.size = strlen(left_motor_status.message.data);
+  right_motor_status.message.size = strlen(right_motor_status.message.data);
+  left_encoder_status.message.size = strlen(left_encoder_status.message.data);
+  right_encoder_status.message.size = strlen(right_encoder_status.message.data);
+  battery_status.message.size = strlen(battery_status.message.data);
 
   // update key value array
-  key_array.data[0] = deadman_keyval;
-  key_array.data[1] = estop;
-  status.values = key_array;
+  teensy_key_array.data[0] = deadman_keyval;
+  teensy_key_array.data[1] = estop;
+  teensy_key_array.data[2] = headlights;
+  teensy_status.values = teensy_key_array;
 
-  RCSOFTCHECK(rcl_publish(&status_publisher, &status, NULL));
+  // update status array
+  status_array.data[0] = teensy_status;
+  status_array.data[1] = left_motor_status;
+  status_array.data[2] = right_motor_status;
+  status_array.data[3] = left_encoder_status;
+  status_array.data[4] = right_encoder_status;
+  status_array.data[5] = battery_status;
+  dia_array.status = status_array;
+
+  RCSOFTCHECK(rcl_publish(&diagnostics_publisher, &dia_array, NULL));
 }
 
 void vel_received_callback(const void * msgin)
@@ -84,8 +111,8 @@ void vel_received_callback(const void * msgin)
   left_motor.move_percent(l_percent_speed);
   right_motor.move_percent(r_percent_speed);
   snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Off");
-  snprintf(status.message.data, status.message.capacity, "messages recieved from /cmd_vel");
-  status.level = diagnostic_msgs__msg__DiagnosticStatus__OK;
+  snprintf(teensy_status.message.data, teensy_status.message.capacity, "messages recieved from /cmd_vel");
+  teensy_status.level = diagnostic_msgs__msg__DiagnosticStatus__OK;
 }
 
 // If no commands are recieved this executes and sets motors to 0
@@ -97,8 +124,8 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
     right_motor.move_percent(0);
 
     snprintf(deadman_keyval.value.data, deadman_keyval.value.capacity, "Triggered");
-    snprintf(status.message.data, status.message.capacity, "No messages recieved from /cmd_vel for 500ms");
-    status.level = diagnostic_msgs__msg__DiagnosticStatus__WARN;
+    snprintf(teensy_status.message.data, teensy_status.message.capacity, "No messages recieved from /cmd_vel for 500ms");
+    teensy_status.level = diagnostic_msgs__msg__DiagnosticStatus__WARN;
     digitalWrite(LED_PIN, HIGH);
   }
 }
@@ -107,16 +134,36 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {
   RCLC_UNUSED(last_call_time);
-  publish_status();
+  publish_diagnostics();
 }
 
 /**
 * @brief Fills out the diagnostic message structure with the defualt values
 */
-void init_debug(){
-  // Init key_val message
+void init_diagnostics(){
+  //---------Teensy Status------------------
+  diagnostic_msgs__msg__DiagnosticStatus__init(&teensy_status);
+  teensy_status.level = diagnostic_msgs__msg__DiagnosticStatus__OK;
+
+  teensy_status.name.data = (char*)malloc(20*sizeof(char));
+  teensy_status.name.capacity = 20;
+  snprintf(teensy_status.name.data, teensy_status.name.capacity, "Teensy Robot Driver");
+  teensy_status.name.size = strlen(teensy_status.name.data);
+
+  teensy_status.message.data = (char*)malloc(100*sizeof(char));
+  teensy_status.message.capacity = 100;
+  snprintf(teensy_status.message.data, teensy_status.message.capacity, "Initialised A-OKAY!");
+  teensy_status.message.size = strlen(teensy_status.message.data);
+
+  teensy_status.hardware_id.data = (char*)malloc(10*sizeof(char));
+  teensy_status.hardware_id.capacity = 10;
+  snprintf(teensy_status.hardware_id.data, teensy_status.hardware_id.capacity, "teensy3.2");
+  teensy_status.hardware_id.size = strlen(teensy_status.hardware_id.data);
+
+  // Init key_val messages
   diagnostic_msgs__msg__KeyValue__init(&deadman_keyval);
   diagnostic_msgs__msg__KeyValue__init(&estop);
+  diagnostic_msgs__msg__KeyValue__init(&headlights);
 
   // Init Dadman timer Key
   const unsigned int KEY_SIZE = 10;
@@ -149,28 +196,132 @@ void init_debug(){
   snprintf(estop.value.data, estop.value.capacity, "Off");
   estop.value.size = strlen(estop.value.data);
 
-  diagnostic_msgs__msg__DiagnosticStatus__init(&status);
-  status.level = diagnostic_msgs__msg__DiagnosticStatus__OK;
+  // Init LED Key
+  headlights.key.data = (char*)malloc(11*sizeof(char));
+  headlights.key.size = 0;
+  headlights.key.capacity = 11;
+  // Use Key
+  snprintf(headlights.key.data, headlights.key.capacity, "Headlights");
+  headlights.key.size = strlen(headlights.key.data);
+  //Init Value
+  headlights.value.data = (char*)malloc(4*sizeof(char));
+  headlights.value.size = 0;
+  headlights.value.capacity = 4;
+  //Use Value
+  snprintf(headlights.value.data, headlights.value.capacity, "Off");
+  headlights.value.size = strlen(headlights.value.data);
 
-  status.name.data = (char*)malloc(20*sizeof(char));
-  status.name.capacity = 20;
-  snprintf(status.name.data, status.name.capacity, "Teensy Robot Driver");
-  status.name.size = strlen(status.name.data);
+  diagnostic_msgs__msg__KeyValue__Sequence__init(&teensy_key_array, 3);
+  teensy_key_array.data[0] = deadman_keyval;
+  teensy_key_array.data[1] = estop;
+  teensy_key_array.data[2] = headlights;
+  teensy_status.values = teensy_key_array;
 
-  status.message.data = (char*)malloc(100*sizeof(char));
-  status.message.capacity = 100;
-  snprintf(status.message.data, status.message.capacity, "Initialised A-OKAY!");
-  status.message.size = strlen(status.message.data);
+  //-----------Left Motor Status----------------------
+  diagnostic_msgs__msg__DiagnosticStatus__init(&left_motor_status);
+  left_motor_status.level = diagnostic_msgs__msg__DiagnosticStatus__WARN;
 
-  status.hardware_id.data = (char*)malloc(10*sizeof(char));
-  status.hardware_id.capacity = 10;
-  snprintf(status.hardware_id.data, status.hardware_id.capacity, "teensy3.2");
-  status.hardware_id.size = strlen(status.hardware_id.data);
+  left_motor_status.name.data = (char*)malloc(18*sizeof(char));
+  left_motor_status.name.capacity = 18;
+  snprintf(left_motor_status.name.data, left_motor_status.name.capacity, "Left Motor Driver");
+  left_motor_status.name.size = strlen(left_motor_status.name.data);
 
-  diagnostic_msgs__msg__KeyValue__Sequence__init(&key_array, 2);
-  key_array.data[0] = deadman_keyval;
-  key_array.data[1] = estop;
-  status.values = key_array;
+  left_motor_status.message.data = (char*)malloc(100*sizeof(char));
+  left_motor_status.message.capacity = 100;
+  snprintf(left_motor_status.message.data, left_motor_status.message.capacity, "Awaiting Setup");
+  left_motor_status.message.size = strlen(left_motor_status.message.data);
+
+  left_motor_status.hardware_id.data = (char*)malloc(14*sizeof(char));
+  left_motor_status.hardware_id.capacity = 14;
+  snprintf(left_motor_status.hardware_id.data, left_motor_status.hardware_id.capacity, "left_SN754410");
+  left_motor_status.hardware_id.size = strlen(left_motor_status.hardware_id.data);
+
+  //-----------Right Motor Status----------------------
+  diagnostic_msgs__msg__DiagnosticStatus__init(&right_motor_status);
+  right_motor_status.level = diagnostic_msgs__msg__DiagnosticStatus__WARN;
+
+  right_motor_status.name.data = (char*)malloc(19*sizeof(char));
+  right_motor_status.name.capacity = 19;
+  snprintf(right_motor_status.name.data, right_motor_status.name.capacity, "Right Motor Driver");
+  right_motor_status.name.size = strlen(right_motor_status.name.data);
+
+  right_motor_status.message.data = (char*)malloc(100*sizeof(char));
+  right_motor_status.message.capacity = 100;
+  snprintf(right_motor_status.message.data, right_motor_status.message.capacity, "Awaiting Setup");
+  right_motor_status.message.size = strlen(right_motor_status.message.data);
+
+  right_motor_status.hardware_id.data = (char*)malloc(15*sizeof(char));
+  right_motor_status.hardware_id.capacity = 15;
+  snprintf(right_motor_status.hardware_id.data, right_motor_status.hardware_id.capacity, "right_SN754410");
+  right_motor_status.hardware_id.size = strlen(right_motor_status.hardware_id.data);
+
+  //-----------Left Encoder Status----------------------
+  diagnostic_msgs__msg__DiagnosticStatus__init(&left_encoder_status);
+  left_encoder_status.level = diagnostic_msgs__msg__DiagnosticStatus__WARN;
+
+  left_encoder_status.name.data = (char*)malloc(13*sizeof(char));
+  left_encoder_status.name.capacity = 13;
+  snprintf(left_encoder_status.name.data, left_encoder_status.name.capacity, "Left Encoder");
+  left_encoder_status.name.size = strlen(left_encoder_status.name.data);
+
+  left_encoder_status.message.data = (char*)malloc(100*sizeof(char));
+  left_encoder_status.message.capacity = 100;
+  snprintf(left_encoder_status.message.data, left_encoder_status.message.capacity, "No encoder implemented");
+  left_encoder_status.message.size = strlen(left_encoder_status.message.data);
+
+  left_encoder_status.hardware_id.data = (char*)malloc(15*sizeof(char));
+  left_encoder_status.hardware_id.capacity = 15;
+  snprintf(left_encoder_status.hardware_id.data, left_encoder_status.hardware_id.capacity, " ");
+  left_encoder_status.hardware_id.size = strlen(left_encoder_status.hardware_id.data);
+
+  //-----------Right Encoder Status----------------------
+  diagnostic_msgs__msg__DiagnosticStatus__init(&right_encoder_status);
+  right_encoder_status.level = diagnostic_msgs__msg__DiagnosticStatus__WARN;
+
+  right_encoder_status.name.data = (char*)malloc(13*sizeof(char));
+  right_encoder_status.name.capacity = 13;
+  snprintf(right_encoder_status.name.data, right_encoder_status.name.capacity, "Right Encoder");
+  right_encoder_status.name.size = strlen(right_encoder_status.name.data);
+
+  right_encoder_status.message.data = (char*)malloc(100*sizeof(char));
+  right_encoder_status.message.capacity = 100;
+  snprintf(right_encoder_status.message.data, right_encoder_status.message.capacity, "No encoder implemented");
+  right_encoder_status.message.size = strlen(right_encoder_status.message.data);
+
+  right_encoder_status.hardware_id.data = (char*)malloc(15*sizeof(char));
+  right_encoder_status.hardware_id.capacity = 15;
+  snprintf(right_encoder_status.hardware_id.data, right_encoder_status.hardware_id.capacity, " ");
+  right_encoder_status.hardware_id.size = strlen(right_encoder_status.hardware_id.data);
+
+  //-----------Battery Status----------------------
+  diagnostic_msgs__msg__DiagnosticStatus__init(&battery_status);
+  battery_status.level = diagnostic_msgs__msg__DiagnosticStatus__WARN;
+
+  battery_status.name.data = (char*)malloc(8*sizeof(char));
+  battery_status.name.capacity = 8;
+  snprintf(battery_status.name.data, battery_status.name.capacity, "Battery");
+  battery_status.name.size = strlen(battery_status.name.data);
+
+  battery_status.message.data = (char*)malloc(100*sizeof(char));
+  battery_status.message.capacity = 100;
+  snprintf(battery_status.message.data, battery_status.message.capacity, "No monitoring implemented");
+  battery_status.message.size = strlen(battery_status.message.data);
+
+  battery_status.hardware_id.data = (char*)malloc(15*sizeof(char));
+  battery_status.hardware_id.capacity = 15;
+  snprintf(battery_status.hardware_id.data, battery_status.hardware_id.capacity, " ");
+  battery_status.hardware_id.size = strlen(battery_status.hardware_id.data);
+
+  //---------Fill diagnostic array --------------------
+  diagnostic_msgs__msg__DiagnosticStatus__Sequence__init(&status_array, 6);
+  diagnostic_msgs__msg__DiagnosticArray__init(&dia_array);
+  status_array.data[0] = teensy_status;
+  status_array.data[1] = left_motor_status;
+  status_array.data[2] = right_motor_status;
+  status_array.data[3] = left_encoder_status;
+  status_array.data[4] = right_encoder_status;
+  status_array.data[5] = battery_status;
+  dia_array.status = status_array;
 }
 
 void setup() {
@@ -201,9 +352,9 @@ void setup() {
   // create Diagnostic Status publisher
   RCCHECK(rclc_publisher_init_default(
   //RCCHECK(rclc_publisher_init_best_effort(
-    &status_publisher,
+    &diagnostics_publisher,
     &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, DiagnosticStatus),
+    ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, DiagnosticArray),
     "diagnostics"));
 
   // create timer, to stop robot if no commands are recieved
@@ -235,18 +386,18 @@ void setup() {
   RCCHECK(rclc_executor_add_timer(&executor, &diagnostic_timer));
 
 
-  init_debug();
+  init_diagnostics();
 
   // init motors
   if (left_motor.setup(left_pin_en, left_pin_a, left_pin_b, left_deadzone) == true) {
     // Setup sucessful
-    snprintf(status.message.data, status.message.capacity, "Left Motor Setup");
-    status.level = diagnostic_msgs__msg__DiagnosticStatus__OK;
-    publish_status();
+    snprintf(left_motor_status.message.data, left_motor_status.message.capacity, "Initialised");
+    left_motor_status.level = diagnostic_msgs__msg__DiagnosticStatus__OK;
+    publish_diagnostics();
   } else {
-      snprintf(status.message.data, status.message.capacity, "Error: Left Motor - Driver type and number of pins initialised do not match");
-      status.level = diagnostic_msgs__msg__DiagnosticStatus__ERROR;
-      publish_status();
+      snprintf(left_motor_status.message.data, left_motor_status.message.capacity, "Error: Driver type and number of pins initialised do not match");
+      left_motor_status.level = diagnostic_msgs__msg__DiagnosticStatus__ERROR;
+      publish_diagnostics();
       // block program and flash onboard LED
       while (1) {
         digitalWrite(LED_PIN, HIGH);
@@ -257,13 +408,13 @@ void setup() {
   }
   if (right_motor.setup(right_pin_en, right_pin_a, right_pin_b, right_deadzone) == true){
     // setup sucessful
-    snprintf(status.message.data, status.message.capacity, "Right Motor Setup");
-    status.level = diagnostic_msgs__msg__DiagnosticStatus__OK;
-    publish_status();
+    snprintf(right_motor_status.message.data, right_motor_status.message.capacity, "Initialised");
+    right_motor_status.level = diagnostic_msgs__msg__DiagnosticStatus__OK;
+    publish_diagnostics();
   } else {
-    snprintf(status.message.data, status.message.capacity, "Error: Right Motor - Driver type and number of pins initialised do not match");
-    status.level = diagnostic_msgs__msg__DiagnosticStatus__ERROR;
-    publish_status();
+    snprintf(right_motor_status.message.data, right_motor_status.message.capacity, "Error: Driver type and number of pins initialised do not match");
+    right_motor_status.level = diagnostic_msgs__msg__DiagnosticStatus__ERROR;
+    publish_diagnostics();
     // block program and flash onboard LED
     while (1) {
       digitalWrite(LED_PIN, HIGH);
