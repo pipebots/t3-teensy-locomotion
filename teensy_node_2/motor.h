@@ -19,10 +19,10 @@ class Motor{
     int pin_en_, pin_A_, pin_B_, deadzone_;
     driver_type driver_type_;
 
-  public:
+ public:
     Motor(driver_type);
-    void setup(int, int, int, int);
-    void setup(int, int, int);
+    bool setup(int, int, int, int);
+    bool setup(int, int, int);
     void move_percent(int);
     void move_fwd(int);
     void move_rev(int);

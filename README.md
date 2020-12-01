@@ -1,12 +1,13 @@
 # Teensy Bot
 A test of [micro-ros for arduino](https://github.com/micro_ros_ardino) on a Teensy 3.2 board.
 
-This is a simple driver for a differential drive robot base.
+This is a driver for a differential drive robot base.
 
 ### Features
 - Uses standard interfaces - accepts twist messages on /cmd_vel topic.
 - Has deadmand timer so the motors are set to 0 if no command is received for a set period.
 - Error signalling via onboard LED.
+- Publishes standard diagnostic messages
 
 # Install
 Follow the [instructions](https://github.com/micro-ROS/micro_ros_arduino/blob/foxy/README.md) to install micro-ros.
@@ -31,21 +32,38 @@ You need to send Twist messages to command the robot, I used a joystick and [tel
 - `cmd_vel (geometry_msgs/msg/Twist)`
 	- Command velocity messages. Only the Linear X and Angular Z velocities are used.
 
+# Published Topics
+- `diagnostics (diagnostic_msgs/msg/DiagnosticArray)`
+	- Published at 1Hz (edit in config).
+	- Formed of an array of component statuses:
+
+		- Teensy Robot Driver `(diagnostic_msgs/msg/DiagnosticStatus)`
+			- Key Value Pairs `(diagnostic_msgs/msg/KeyValue)`:
+			- Deadman Timer - Off/Triggered
+			- Emergency Stop - Off/On
+			- Headlights - Off/On
+
+		- Left Motor Driver `(diagnostic_msgs/msg/DiagnosticStatus)`
+		- Right Motor Driver `(diagnostic_msgs/msg/DiagnosticStatus)`
+		- Left Encoder `(diagnostic_msgs/msg/DiagnosticStatus)`
+		- Right Encoder `(diagnostic_msgs/msg/DiagnosticStatus)`
+		- Battery `(diagnostic_msgs/msg/DiagnosticStatus)`
+
 # Error Codes
-The onboard LED is used to signal the state of the board.
-````
-LED         |	Status            |
+The onboard LED is used to signal the state of the board. These errors are also reported back via the diagnostics topic.
+
+LED         |	Status              |
 ------------|---------------------|
 Off         | Ok                  |
 On          | Message Timeout     |
 Flash [1:1] | Communication Error |
 Flash [5:1] | Configuration Error |
-````
+
 ## Message/Deadman Timeout
-As a safety feature there is an internal timer which sets the motors to stationary if no message is received on the `cmd_vel` topic for 500ms.
+As a safety feature there is an internal timer which sets the motors to stationary if no message is received on the `cmd_vel` topic for 500ms (can change in config).
 
 ## Communication Error
-If the board looses it's connection to the micro-ros agent then it will enter this state. The LED will blink rapidly with equal on/off times for 5 seconds. The board will then reset in an attempt to reconnect.
+If the board looses it's connection to the micro-ros agent then it will enter this state. The LED will blink rapidly with equal on/off times for 5 seconds. The board will then reset in an attempt to reconnect. This does not attempt to report the error via the diagnostics is with no coms this would not be received anyway.
 
 ## Configuration Error
 If the code detects that the incorrect parameters have been set in the motor setup function for the type of driver declared in `config.h` it will enter and remain in this error state. The LED will flash with a long/short on/off cycle.
