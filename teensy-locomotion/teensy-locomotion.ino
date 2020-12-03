@@ -15,11 +15,9 @@
 #include "robot_driver.h"
 #include "motor.h"
 #include "config.h"
-#include "errors.h"
+#include "diagnostics.h"
 
 #include <diagnostic_msgs/msg/diagnostic_array.h>
-#include <diagnostic_msgs/msg/diagnostic_status.h>
-#include <diagnostic_msgs/msg/key_value.h>
 #include <geometry_msgs/msg/twist.h>
 
 
@@ -47,8 +45,8 @@ rcl_node_t node;
 rcl_timer_t deadman_timer;
 rcl_timer_t diagnostic_timer;
 
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(left_motor, right_motor);}}
-#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(left_motor, right_motor);}}
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&left_motor, &right_motor);}}
+#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&left_motor, &right_motor);}}
 
 RobotDriver robot(max_speed, wheel_base);
 Motor left_motor(left_driver);
@@ -122,69 +120,7 @@ void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
   publish_diagnostics();
 }
 
-diagnostic_msgs__msg__DiagnosticStatus* create_diagnostic_status(diagnostic_msgs__msg__DiagnosticStatus *status, const char *name, const char *message, const char *hardwareID, uint8_t level){
-  status = diagnostic_msgs__msg__DiagnosticStatus__create();
-  status->level = level;
 
-  int name_length = strlen(name) + 1;
-  status->name.data = (char*)malloc(name_length*sizeof(char));
-  status->name.capacity = name_length;
-  snprintf(status->name.data, status->name.capacity, name);
-  status->name.size = strlen(status->name.data);
-
-  int msg_length = strlen(message) + 1;
-  status->message.data = (char*)malloc(msg_length*sizeof(char));
-  status->message.capacity = msg_length;
-  snprintf(status->message.data, status->message.capacity, message);
-  status->message.size = strlen(status->message.data);
-
-  int id_length = strlen(hardwareID) + 1;
-  status->hardware_id.data = (char*)malloc(id_length*sizeof(char));
-  status->hardware_id.capacity = id_length;
-  snprintf(status->hardware_id.data, status->hardware_id.capacity, hardwareID);
-  status->hardware_id.size = strlen(status->hardware_id.data);
-
-  return status;
-}
-
-diagnostic_msgs__msg__DiagnosticStatus* update_diagnostic_status(diagnostic_msgs__msg__DiagnosticStatus *status, const char *message, uint8_t level){
-  int msg_length = strlen(message) + 1;
-  status->message.data = (char*)malloc(msg_length*sizeof(char));
-  status->message.capacity = msg_length;
-  snprintf(status->message.data, status->message.capacity, message);
-  status->message.size = strlen(status->message.data);
-
-  status->level = level;
-
-  return status;
-}
-
-diagnostic_msgs__msg__KeyValue* create_diagnostic_KeyValue(diagnostic_msgs__msg__KeyValue *keyvalue, const char *key, const char *value){
-  // Init Key
-  keyvalue = diagnostic_msgs__msg__KeyValue__create();
-  int key_length = strlen(key) + 1;
-  keyvalue->key.data = (char*)malloc(key_length*sizeof(char));
-  keyvalue->key.capacity = key_length;
-  // Use Key
-  snprintf(keyvalue->key.data, keyvalue->key.capacity, key);
-  keyvalue->key.size = strlen(keyvalue->key.data);
-  //Init Value
-  int value_length = strlen(value) + 1;
-  keyvalue->value.data = (char*)malloc(value_length*sizeof(char));
-  keyvalue->value.capacity = value_length;
-  //Use Value
-  snprintf(keyvalue->value.data, keyvalue->value.capacity, value);
-  keyvalue->value.size = strlen(keyvalue->value.data);
-  return keyvalue;
-}
-
-diagnostic_msgs__msg__KeyValue* update_diagnostic_KeyValue(diagnostic_msgs__msg__KeyValue *keyvalue, const char *value){
-  int value_length = strlen(value) + 1;
-  keyvalue->value.capacity = value_length;
-  snprintf(keyvalue->value.data, keyvalue->value.capacity, value);
-  keyvalue->value.size = strlen(keyvalue->value.data);
-  return keyvalue;
-}
 
 /**
 * @brief Fills out the diagnostic message structure with the defualt values
