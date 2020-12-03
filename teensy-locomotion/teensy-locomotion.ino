@@ -120,10 +120,8 @@ void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
   publish_diagnostics();
 }
 
-
-
 /**
-* @brief Fills out the diagnostic message structure with the defualt values
+* @brief Fills out the diagnostic message structure with the default values
 */
 void init_diagnostics(){
   // Teensy Status
@@ -139,7 +137,7 @@ void init_diagnostics(){
   teensy_key_array.data[2] = *headlights;
   teensy_status->values = teensy_key_array;
 
-  // create statuses
+  // create other statuses
   left_motor_status = create_diagnostic_status(left_motor_status, "left Motor Driver", "Awaiting Setup", "left_SN754410", diagnostic_msgs__msg__DiagnosticStatus__WARN);
   right_motor_status = create_diagnostic_status(right_motor_status, "right Motor Driver", "Awaiting Setup", "right_SN754410", diagnostic_msgs__msg__DiagnosticStatus__WARN);
   left_encoder_status = create_diagnostic_status(left_encoder_status, "Left Encoder", "No encoder implemented", "", diagnostic_msgs__msg__DiagnosticStatus__WARN);
@@ -218,7 +216,6 @@ void setup() {
   RCCHECK(rclc_executor_add_subscription(&executor, &cmd_subscriber, &cmd_twist, &vel_received_callback, ON_NEW_DATA));
   RCCHECK(rclc_executor_add_timer(&executor, &deadman_timer));
   RCCHECK(rclc_executor_add_timer(&executor, &diagnostic_timer));
-
 
   init_diagnostics();
 
