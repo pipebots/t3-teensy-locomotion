@@ -177,19 +177,20 @@ void init_diagnostics() {
   left_encoder_status = create_diagnostic_status(
                           left_encoder_status,
                           left_encoder.name,
-                          "No encoder implemented",
+                          "Awaiting Setup",
                           left_encoder.hardware_id,
                           diagnostic_msgs__msg__DiagnosticStatus__WARN);
 
   right_encoder_status = create_diagnostic_status(
                           right_encoder_status,
                           right_encoder.name,
-                          "No encoder implemented",
+                          "Awaiting Setup",
                           right_encoder.hardware_id,
                           diagnostic_msgs__msg__DiagnosticStatus__WARN);
   battery_status = create_diagnostic_status(
                       battery_status,
-                      "Battery", "No monitoring implemented",
+                      "Battery",
+                      "No monitoring implemented",
                       "",
                       diagnostic_msgs__msg__DiagnosticStatus__WARN);
 
