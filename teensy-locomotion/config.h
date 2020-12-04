@@ -9,11 +9,13 @@
 #define LED_PIN 13 //onboard LED
 
 const unsigned int deadman_timeout = 500; // ms
-const unsigned int diagnostic_frequency = 1; // Hz
+const unsigned int diagnostic_frequency = 1; // publishing frequency (Hz)
 
+// Robot base parameters
 const float max_speed = 1.0; // m/s
 const float wheel_base = 0.08; // m
 
+// Motor 1
 const driver_type left_driver = h_bridge;
 const char *l_driver_name = "Left Motor";
 const char *l_driver_id = "Left SN754410";
@@ -22,6 +24,7 @@ const unsigned int left_pin_a = 7;
 const unsigned int left_pin_b = 8;
 const unsigned int left_deadzone = 5;
 
+// Motor 2
 const driver_type right_driver = h_bridge;
 const char *r_driver_name = "Right Motor";
 const char *r_driver_id = "Right SN754410";
@@ -30,6 +33,7 @@ const unsigned int right_pin_a = 17;
 const unsigned int right_pin_b = 16;
 const unsigned int right_deadzone =5;
 
+// Encoder 1
 const char *l_encoder_name = "Left Encoder";
 const unsigned int l_encoder_pin_a = 1;
 const unsigned int l_encoder_pin_b = 2;
@@ -37,6 +41,7 @@ const unsigned int l_counts_per_rev = 2500;
 const char *l_encoder_id = "";
 const bool l_inverse = false;
 
+// Encoder 2
 const char *r_encoder_name = "Right Encoder";
 const unsigned int r_encoder_pin_a = 3;
 const unsigned int r_encoder_pin_b = 4;

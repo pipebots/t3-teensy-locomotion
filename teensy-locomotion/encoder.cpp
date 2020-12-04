@@ -66,7 +66,8 @@ bool Encoder::setup() {
       break;
 
     default:
-      // problem, more instances than we can cope with
+      // problem, more instances than we can cope with. (In this case add
+      // more cases to switch above and create the required 'glue' functions.)
       success = false;
     }
   inst_counter++;
