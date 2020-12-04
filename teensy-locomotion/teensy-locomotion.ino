@@ -38,10 +38,10 @@ rcl_publisher_t diagnostics_publisher;
 
 geometry_msgs__msg__Twist cmd_twist;
 diagnostic_msgs__msg__DiagnosticStatus * teensy_status;
-diagnostic_msgs__msg__DiagnosticStatus * left_motor_status;
-diagnostic_msgs__msg__DiagnosticStatus * right_motor_status;
-diagnostic_msgs__msg__DiagnosticStatus * left_encoder_status;
-diagnostic_msgs__msg__DiagnosticStatus * right_encoder_status;
+diagnostic_msgs__msg__DiagnosticStatus * motor_1_status;
+diagnostic_msgs__msg__DiagnosticStatus * motor_2_status;
+diagnostic_msgs__msg__DiagnosticStatus * encoder_1_status;
+diagnostic_msgs__msg__DiagnosticStatus * encoder_2_status;
 diagnostic_msgs__msg__DiagnosticStatus * battery_status;
 diagnostic_msgs__msg__KeyValue * deadman_keyval;
 diagnostic_msgs__msg__KeyValue * estop;
@@ -57,16 +57,16 @@ rcl_node_t node;
 rcl_timer_t deadman_timer;
 rcl_timer_t diagnostic_timer;
 
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&left_motor, &right_motor, LED_PIN);}}
-#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&left_motor, &right_motor, LED_PIN);}}
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&motor_1, &motor_2, LED_PIN);}}
+#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&motor_1, &motor_2, LED_PIN);}}
 
 RobotDriver robot(max_speed, wheel_base);
-Motor left_motor(l_driver_name, l_driver_id, left_driver);
-Motor right_motor(r_driver_name, r_driver_id, right_driver);
-Encoder left_encoder(l_encoder_name, l_encoder_pin_a, l_encoder_pin_b,
-                  l_counts_per_rev, l_encoder_id, l_inverse);
-Encoder right_encoder(r_encoder_name, r_encoder_pin_a, r_encoder_pin_b,
-                  r_counts_per_rev, r_encoder_id, r_inverse);
+Motor motor_1(driver_1_name, driver_1_id, driver_1);
+Motor motor_2(driver_2_name, driver_2_id, driver_2);
+Encoder encoder_1(encoder_1_name, en1_pin_a, en1_pin_b,
+                  en1_counts_per_rev, encoder_1_id, en1_inverse);
+Encoder encoder_2(encoder_2_name, en2_pin_a, en2_pin_b,
+                  en2_counts_per_rev, encoder_2_id, en2_inverse);
 
 void publish_diagnostics() {
   // update key value array
@@ -77,10 +77,10 @@ void publish_diagnostics() {
 
   // update status array
   status_array.data[0] = *teensy_status;
-  status_array.data[1] = *left_motor_status;
-  status_array.data[2] = *right_motor_status;
-  status_array.data[3] = *left_encoder_status;
-  status_array.data[4] = *right_encoder_status;
+  status_array.data[1] = *motor_1_status;
+  status_array.data[2] = *motor_2_status;
+  status_array.data[3] = *encoder_1_status;
+  status_array.data[4] = *encoder_2_status;
   status_array.data[5] = *battery_status;
   dia_array->status = status_array;
 
@@ -107,8 +107,8 @@ void vel_received_callback(const void * msgin) {
   int r_percent_speed = robot.percent_speed(robot.right_speed);
 
   // move motors
-  left_motor.move_percent(l_percent_speed);
-  right_motor.move_percent(r_percent_speed);
+  motor_1.move_percent(l_percent_speed);
+  motor_2.move_percent(r_percent_speed);
   deadman_keyval = update_diagnostic_KeyValue(deadman_keyval, "Off");
   teensy_status = update_diagnostic_status(
                     teensy_status,
@@ -120,8 +120,8 @@ void vel_received_callback(const void * msgin) {
 void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
   RCLC_UNUSED(last_call_time);
   if (timer != NULL) {
-    left_motor.move_percent(0);
-    right_motor.move_percent(0);
+    motor_1.move_percent(0);
+    motor_2.move_percent(0);
 
     teensy_status = update_diagnostic_status(
                       teensy_status,
@@ -160,32 +160,32 @@ void init_diagnostics() {
   teensy_status->values = teensy_key_array;
 
   // create other statuses
-  left_motor_status = create_diagnostic_status(
-                        left_motor_status,
-                        left_motor.name,
+  motor_1_status = create_diagnostic_status(
+                        motor_1_status,
+                        motor_1.name,
                         "Awaiting Setup",
-                        left_motor.hardware_id,
+                        motor_1.hardware_id,
                         diagnostic_msgs__msg__DiagnosticStatus__WARN);
 
-  right_motor_status = create_diagnostic_status(
-                        right_motor_status,
-                        right_motor.name,
+  motor_2_status = create_diagnostic_status(
+                        motor_2_status,
+                        motor_2.name,
                         "Awaiting Setup",
-                        right_motor.hardware_id,
+                        motor_2.hardware_id,
                         diagnostic_msgs__msg__DiagnosticStatus__WARN);
 
-  left_encoder_status = create_diagnostic_status(
-                          left_encoder_status,
-                          left_encoder.name,
+  encoder_1_status = create_diagnostic_status(
+                          encoder_1_status,
+                          encoder_1.name,
                           "Awaiting Setup",
-                          left_encoder.hardware_id,
+                          encoder_1.hardware_id,
                           diagnostic_msgs__msg__DiagnosticStatus__WARN);
 
-  right_encoder_status = create_diagnostic_status(
-                          right_encoder_status,
-                          right_encoder.name,
+  encoder_2_status = create_diagnostic_status(
+                          encoder_2_status,
+                          encoder_2.name,
                           "Awaiting Setup",
-                          right_encoder.hardware_id,
+                          encoder_2.hardware_id,
                           diagnostic_msgs__msg__DiagnosticStatus__WARN);
   battery_status = create_diagnostic_status(
                       battery_status,
@@ -198,10 +198,10 @@ void init_diagnostics() {
   diagnostic_msgs__msg__DiagnosticStatus__Sequence__init(&status_array, 6);
   dia_array = diagnostic_msgs__msg__DiagnosticArray__create();
   status_array.data[0] = *teensy_status;
-  status_array.data[1] = *left_motor_status;
-  status_array.data[2] = *right_motor_status;
-  status_array.data[3] = *left_encoder_status;
-  status_array.data[4] = *right_encoder_status;
+  status_array.data[1] = *motor_1_status;
+  status_array.data[2] = *motor_2_status;
+  status_array.data[3] = *encoder_1_status;
+  status_array.data[4] = *encoder_2_status;
   status_array.data[5] = *battery_status;
   dia_array->status = status_array;
 }
@@ -269,16 +269,16 @@ void setup() {
   init_diagnostics();
 
   // init motors
-  if (left_motor.setup(left_pin_en, left_pin_a, left_pin_b, left_deadzone) == true) {
+  if (motor_1.setup(d1_pin_en, d1_pin_a, d1_pin_b, d1_deadzone) == true) {
     // Setup sucessful
-    left_motor_status = update_diagnostic_status(
-                          left_motor_status,
+    motor_1_status = update_diagnostic_status(
+                          motor_1_status,
                           "Initialised",
                            diagnostic_msgs__msg__DiagnosticStatus__OK);
     publish_diagnostics();
   } else {
-      left_motor_status = update_diagnostic_status(
-                            left_motor_status,
+      motor_1_status = update_diagnostic_status(
+                            motor_1_status,
                             "Error: Driver type and number of pins initialised do not match",
                             diagnostic_msgs__msg__DiagnosticStatus__ERROR);
       publish_diagnostics();
@@ -290,16 +290,16 @@ void setup() {
         delay(500);
       }
   }
-  if (right_motor.setup(right_pin_en, right_pin_a, right_pin_b, right_deadzone) == true) {
+  if (motor_2.setup(d2_pin_en, d2_pin_a, d2_pin_b, d2_deadzone) == true) {
     // setup sucessful
-    right_motor_status = update_diagnostic_status(
-                          right_motor_status,
+    motor_2_status = update_diagnostic_status(
+                          motor_2_status,
                           "Initialised",
                           diagnostic_msgs__msg__DiagnosticStatus__OK);
     publish_diagnostics();
   } else {
-    right_motor_status = update_diagnostic_status(
-                          right_motor_status,
+    motor_2_status = update_diagnostic_status(
+                          motor_2_status,
                           "Error: Driver type and number of pins initialised do not match",
                           diagnostic_msgs__msg__DiagnosticStatus__ERROR);
     publish_diagnostics();
@@ -313,31 +313,31 @@ void setup() {
   }
 
   // init encoders
-  if (left_encoder.setup() == true) {
+  if (encoder_1.setup() == true) {
     // Setup sucessful
-    left_encoder_status = update_diagnostic_status(
-                            left_encoder_status,
+    encoder_1_status = update_diagnostic_status(
+                            encoder_1_status,
                             "Initialised",
                              diagnostic_msgs__msg__DiagnosticStatus__OK);
     publish_diagnostics();
   } else {
-      left_encoder_status = update_diagnostic_status(
-                              left_encoder_status,
+      encoder_1_status = update_diagnostic_status(
+                              encoder_1_status,
                               "Error: Encoder not initialised, too many instances.",
                               diagnostic_msgs__msg__DiagnosticStatus__ERROR);
       publish_diagnostics();
   }
 
-  if (right_encoder.setup() == true) {
+  if (encoder_2.setup() == true) {
     // Setup sucessful
-    right_encoder_status = update_diagnostic_status(
-                            right_encoder_status,
+    encoder_2_status = update_diagnostic_status(
+                            encoder_2_status,
                             "Initialised",
                             diagnostic_msgs__msg__DiagnosticStatus__OK);
     publish_diagnostics();
   } else {
-      right_encoder_status = update_diagnostic_status(
-                              right_encoder_status,
+      encoder_2_status = update_diagnostic_status(
+                              encoder_2_status,
                               "Error: Encoder not initialised, too many instances.",
                               diagnostic_msgs__msg__DiagnosticStatus__ERROR);
       publish_diagnostics();
