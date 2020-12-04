@@ -21,13 +21,16 @@
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
 
+#include <diagnostic_msgs/msg/diagnostic_array.h>
+#include <geometry_msgs/msg/twist.h>
+
 #include "robot_driver.h"
 #include "motor.h"
 #include "config.h"
 #include "diagnostics.h"
+#include "encoder.h"
 
-#include <diagnostic_msgs/msg/diagnostic_array.h>
-#include <geometry_msgs/msg/twist.h>
+
 
 
 rcl_subscription_t cmd_subscriber;
@@ -54,14 +57,18 @@ rcl_node_t node;
 rcl_timer_t deadman_timer;
 rcl_timer_t diagnostic_timer;
 
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&left_motor, &right_motor);}}
-#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&left_motor, &right_motor);}}
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&left_motor, &right_motor, LED_PIN);}}
+#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&left_motor, &right_motor, LED_PIN);}}
 
 RobotDriver robot(max_speed, wheel_base);
 Motor left_motor(left_driver);
 Motor right_motor(right_driver);
+Encoder left_encoder(l_encoder_name, l_encoder_pin_a, l_encoder_pin_b,
+                  l_counts_per_rev, l_encoder_id, l_inverse);
+Encoder right_encoder(r_encoder_name, r_encoder_pin_a, r_encoder_pin_b,
+                  r_counts_per_rev, r_encoder_id, r_inverse);
 
-void publish_diagnostics(){
+void publish_diagnostics() {
   // update key value array
   teensy_key_array.data[0] = *deadman_keyval;
   teensy_key_array.data[1] = *estop;
@@ -80,20 +87,18 @@ void publish_diagnostics(){
   RCSOFTCHECK(rcl_publish(&diagnostics_publisher, dia_array, NULL));
 }
 
-void vel_received_callback(const void * msgin)
-{
+void vel_received_callback(const void * msgin) {
   const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
 
-  //digitalWrite(LED_PIN, !digitalRead(LED_PIN));
   digitalWrite(LED_PIN, LOW);
-  //reset deadman_timer
+  // reset deadman_timer
   rcl_timer_reset(&deadman_timer);
 
   // extract vels from twist message
   float linear = msg->linear.x;
   float angular = msg->angular.z;
 
-  //calc desired wheel speed (m/s)
+  // calc desired wheel speed (m/s)
   robot.wheel_speeds(linear, angular);
 
   // get as percentage of max speed
@@ -101,30 +106,34 @@ void vel_received_callback(const void * msgin)
   int l_percent_speed = robot.percent_speed(robot.left_speed);
   int r_percent_speed = robot.percent_speed(robot.right_speed);
 
-  //move motors
+  // move motors
   left_motor.move_percent(l_percent_speed);
   right_motor.move_percent(r_percent_speed);
   deadman_keyval = update_diagnostic_KeyValue(deadman_keyval, "Off");
-  teensy_status = update_diagnostic_status(teensy_status, "messages recieved from /cmd_vel", diagnostic_msgs__msg__DiagnosticStatus__OK);
+  teensy_status = update_diagnostic_status(
+                    teensy_status,
+                    "messages recieved from /cmd_vel",
+                    diagnostic_msgs__msg__DiagnosticStatus__OK);
 }
 
 // If no commands are recieved this executes and sets motors to 0
-void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
-{
+void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
   RCLC_UNUSED(last_call_time);
   if (timer != NULL) {
     left_motor.move_percent(0);
     right_motor.move_percent(0);
 
-    teensy_status = update_diagnostic_status(teensy_status, "No messages recieved from /cmd_vel for 500ms", diagnostic_msgs__msg__DiagnosticStatus__WARN);
+    teensy_status = update_diagnostic_status(
+                      teensy_status,
+                      "No messages recieved from /cmd_vel for 500ms",
+                      diagnostic_msgs__msg__DiagnosticStatus__WARN);
     deadman_keyval = update_diagnostic_KeyValue(deadman_keyval, "Triggered");
     digitalWrite(LED_PIN, HIGH);
   }
 }
 
 // Timer callback which publishes diaganostic status message at set interval
-void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
-{
+void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
   RCLC_UNUSED(last_call_time);
   publish_diagnostics();
 }
@@ -132,9 +141,13 @@ void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 /**
 * @brief Fills out the diagnostic message structure with the default values
 */
-void init_diagnostics(){
+void init_diagnostics() {
   // Teensy Status
-  teensy_status = create_diagnostic_status(teensy_status, "Teensy Robot Driver", "Init", "teensy3.2", diagnostic_msgs__msg__DiagnosticStatus__OK);
+  teensy_status = create_diagnostic_status(teensy_status,
+                    "Teensy Robot Driver",
+                    "Init",
+                    "teensy3.2",
+                    diagnostic_msgs__msg__DiagnosticStatus__OK);
   // Teensy Status Key-value pairs
   deadman_keyval = create_diagnostic_KeyValue(deadman_keyval, "Deadman Timer", "Init");
   estop = create_diagnostic_KeyValue(deadman_keyval, "Emergency Stop", "Off");
@@ -147,11 +160,38 @@ void init_diagnostics(){
   teensy_status->values = teensy_key_array;
 
   // create other statuses
-  left_motor_status = create_diagnostic_status(left_motor_status, "left Motor Driver", "Awaiting Setup", "left_SN754410", diagnostic_msgs__msg__DiagnosticStatus__WARN);
-  right_motor_status = create_diagnostic_status(right_motor_status, "right Motor Driver", "Awaiting Setup", "right_SN754410", diagnostic_msgs__msg__DiagnosticStatus__WARN);
-  left_encoder_status = create_diagnostic_status(left_encoder_status, "Left Encoder", "No encoder implemented", "", diagnostic_msgs__msg__DiagnosticStatus__WARN);
-  right_encoder_status = create_diagnostic_status(right_encoder_status, "Right Encoder", "No encoder implemented", "", diagnostic_msgs__msg__DiagnosticStatus__WARN);
-  battery_status = create_diagnostic_status(battery_status, "Battery", "No monitoring implemented", "", diagnostic_msgs__msg__DiagnosticStatus__WARN);
+  left_motor_status = create_diagnostic_status(
+                        left_motor_status,
+                        "left Motor Driver",
+                        "Awaiting Setup",
+                        "left_SN754410",
+                        diagnostic_msgs__msg__DiagnosticStatus__WARN);
+
+  right_motor_status = create_diagnostic_status(
+                        right_motor_status,
+                        "right Motor Driver",
+                        "Awaiting Setup",
+                        "right_SN754410",
+                        diagnostic_msgs__msg__DiagnosticStatus__WARN);
+
+  left_encoder_status = create_diagnostic_status(
+                          left_encoder_status,
+                          left_encoder.name,
+                          "No encoder implemented",
+                          left_encoder.hardware_id,
+                          diagnostic_msgs__msg__DiagnosticStatus__WARN);
+
+  right_encoder_status = create_diagnostic_status(
+                          right_encoder_status,
+                          right_encoder.name,
+                          "No encoder implemented",
+                          right_encoder.hardware_id,
+                          diagnostic_msgs__msg__DiagnosticStatus__WARN);
+  battery_status = create_diagnostic_status(
+                      battery_status,
+                      "Battery", "No monitoring implemented",
+                      "",
+                      diagnostic_msgs__msg__DiagnosticStatus__WARN);
 
   // Fill diagnostic array with statuses
   diagnostic_msgs__msg__DiagnosticStatus__Sequence__init(&status_array, 6);
@@ -166,7 +206,6 @@ void init_diagnostics(){
 }
 
 void setup() {
-
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
 
@@ -174,7 +213,7 @@ void setup() {
 
   allocator = rcl_get_default_allocator();
 
-  //create init_options
+  // create init_options
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
 
   // create node
@@ -192,7 +231,7 @@ void setup() {
 
   // create Diagnostic Status publisher
   RCCHECK(rclc_publisher_init_default(
-  //RCCHECK(rclc_publisher_init_best_effort(
+  // RCCHECK(rclc_publisher_init_best_effort(
     &diagnostics_publisher,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, DiagnosticArray),
@@ -211,7 +250,7 @@ void setup() {
   RCCHECK(rclc_timer_init_default(
     &diagnostic_timer,
     &support,
-    RCL_MS_TO_NS(1000/diagnostic_frequency), // convert Hz to ms
+    RCL_MS_TO_NS(1000/diagnostic_frequency),  // convert Hz to ms
     diagnostic_timer_callback));
 
   // create executor
@@ -231,10 +270,16 @@ void setup() {
   // init motors
   if (left_motor.setup(left_pin_en, left_pin_a, left_pin_b, left_deadzone) == true) {
     // Setup sucessful
-    left_motor_status = update_diagnostic_status(left_motor_status, "Initialised", diagnostic_msgs__msg__DiagnosticStatus__OK);
+    left_motor_status = update_diagnostic_status(
+                          left_motor_status,
+                          "Initialised",
+                           diagnostic_msgs__msg__DiagnosticStatus__OK);
     publish_diagnostics();
   } else {
-      left_motor_status = update_diagnostic_status(left_motor_status, "Error: Driver type and number of pins initialised do not match", diagnostic_msgs__msg__DiagnosticStatus__ERROR);
+      left_motor_status = update_diagnostic_status(
+                            left_motor_status,
+                            "Error: Driver type and number of pins initialised do not match",
+                            diagnostic_msgs__msg__DiagnosticStatus__ERROR);
       publish_diagnostics();
       // block program and flash onboard LED
       while (1) {
@@ -244,12 +289,18 @@ void setup() {
         delay(500);
       }
   }
-  if (right_motor.setup(right_pin_en, right_pin_a, right_pin_b, right_deadzone) == true){
+  if (right_motor.setup(right_pin_en, right_pin_a, right_pin_b, right_deadzone) == true) {
     // setup sucessful
-    right_motor_status = update_diagnostic_status(right_motor_status, "Initialised", diagnostic_msgs__msg__DiagnosticStatus__OK);
+    right_motor_status = update_diagnostic_status(
+                          right_motor_status,
+                          "Initialised",
+                          diagnostic_msgs__msg__DiagnosticStatus__OK);
     publish_diagnostics();
   } else {
-    right_motor_status = update_diagnostic_status(right_motor_status, "Error: Driver type and number of pins initialised do not match", diagnostic_msgs__msg__DiagnosticStatus__ERROR);
+    right_motor_status = update_diagnostic_status(
+                          right_motor_status,
+                          "Error: Driver type and number of pins initialised do not match",
+                          diagnostic_msgs__msg__DiagnosticStatus__ERROR);
     publish_diagnostics();
     // block program and flash onboard LED
     while (1) {
@@ -259,7 +310,39 @@ void setup() {
       delay(500);
     }
   }
-}
+
+  // init encoders
+  if (left_encoder.setup() == true) {
+    // Setup sucessful
+    left_encoder_status = update_diagnostic_status(
+                            left_encoder_status,
+                            "Initialised",
+                             diagnostic_msgs__msg__DiagnosticStatus__OK);
+    publish_diagnostics();
+  } else {
+      left_encoder_status = update_diagnostic_status(
+                              left_encoder_status,
+                              "Error: Encoder not initialised, too many instances.",
+                              diagnostic_msgs__msg__DiagnosticStatus__ERROR);
+      publish_diagnostics();
+  }
+
+  if (right_encoder.setup() == true) {
+    // Setup sucessful
+    right_encoder_status = update_diagnostic_status(
+                            right_encoder_status,
+                            "Initialised",
+                            diagnostic_msgs__msg__DiagnosticStatus__OK);
+    publish_diagnostics();
+  } else {
+      right_encoder_status = update_diagnostic_status(
+                              right_encoder_status,
+                              "Error: Encoder not initialised, too many instances.",
+                              diagnostic_msgs__msg__DiagnosticStatus__ERROR);
+      publish_diagnostics();
+  }
+
+}  // end setup
 
 void loop() {
   delay(100);

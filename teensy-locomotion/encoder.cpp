@@ -1,6 +1,7 @@
 #include "Arduino.h"
 #include "encoder.h"
 
+
 /*
 * @brief Setup encoder object.
 * @param encoder_name Name for use in diagnostic messages.
@@ -11,16 +12,33 @@
 * @param inverse Optional, default = false. Swap the direction which counts up, to account for motors mounted in different ways.
 * @return true if successful
 */
-bool Encoder::setup(char encoder_name, int pin_A, int pin_B,
-                  int counts_per_revolution, const char *id = "",
-                  bool inverse = false) {
-  bool success = true;
+Encoder::Encoder(const char *encoder_name,
+                  const unsigned int pin_A,
+                  const unsigned int pin_B,
+                  const unsigned int counts_per_revolution,
+                  const char *id,
+                  const bool inverse) {
+  name = encoder_name;
   pin_A_ = pin_A;
   pin_B_ = pin_B;
   counts_per_revolution_ = counts_per_revolution;
-  name = encoder_name;
   hardware_id = id;
+  this->inverse = inverse;
+}
 
+
+/*
+* @brief Setup encoder object.
+* @param encoder_name Name for use in diagnostic messages.
+* @param pin_A Digital Pin A - Interrupt attached to this one.
+* @param pin_B Digital Pin B.
+* @param counts_per_revolution Number of encoder ticks per turn of the robot's wheel.
+* @param id Optional, default = "". Hardware Id or serial numer for use in diagnostic messages.
+* @param inverse Optional, default = false. Swap the direction which counts up, to account for motors mounted in different ways.
+* @return true if successful
+*/
+bool Encoder::setup() {
+  int success = true;
   pinMode(pin_A_, INPUT);
   pinMode(pin_B_, INPUT);
   digitalWrite(pin_A_, HIGH);  // turn on pullup resistor
@@ -29,6 +47,7 @@ bool Encoder::setup(char encoder_name, int pin_A, int pin_B,
 
   switch (inst_counter) {
     case 0:
+
       instances[0] = this;
       if (inverse) {
         attachInterrupt(digitalPinToInterrupt(pin_A_), count_glue_0_inv, RISING);

@@ -1,6 +1,5 @@
 #include "Arduino.h"
 #include "motor.h"
-#include "diagnostics.h"
 /*
 * @brief Create motor and config the type of driver it is connected to
 * @param driver Either a h_bridge or pwm_dir style driver.

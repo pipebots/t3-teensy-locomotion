@@ -1,6 +1,5 @@
 #include "Arduino.h"
 #include "diagnostics.h"
-#include "config.h"
 
 /**
 * @brief Create diagnostic status message and fill with initial values.
@@ -112,14 +111,14 @@ diagnostic_msgs__msg__KeyValue* update_diagnostic_KeyValue(
 * @brief Error loop for when communication is lost. R
 * Flashes on/off for 5 seconds, then resets board.
 */
-void coms_error(Motor *left, Motor *right) {
+void coms_error(Motor *left, Motor *right, int led_pin) {
   // stop motors
   left->move_fwd(0);
   right->move_fwd(0);
 
   // flash onboard LED
   for (int i = 0; i <=50; i++) {
-    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+    digitalWrite(led_pin, !digitalRead(led_pin));
     delay(100);
   }
   // restart teensy to try to reconnect

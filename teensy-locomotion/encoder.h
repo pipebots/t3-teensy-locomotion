@@ -4,6 +4,7 @@
 #include "Arduino.h"
 
 /*
+* Class for an encoder.
 * wheel_position keeps track so we know when to incriment total_revolutions
 * ticks is the current total raw encoder value
 * previous_ticks is the previous total raw encoder value. This is used
@@ -26,9 +27,11 @@ class Encoder{
     void count_inverse();
 
  public:
-    bool setup(char,  int, int, int, const char *, bool);
+    Encoder(const char *,  const unsigned int, const unsigned int,
+            const unsigned int, const char *, const bool);
+    bool setup();
     volatile int total_revolutions, wheel_position, ticks;
-    char name;
+    const char *name;
     const char *hardware_id;
 };
 
