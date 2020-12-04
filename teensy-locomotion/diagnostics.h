@@ -14,6 +14,6 @@ diagnostic_msgs__msg__KeyValue* create_diagnostic_KeyValue(diagnostic_msgs__msg_
 
 diagnostic_msgs__msg__KeyValue* update_diagnostic_KeyValue(diagnostic_msgs__msg__KeyValue *, const char *);
 
-void coms_error(const Motor *, const Motor *);
+void coms_error(Motor *, Motor *);
 
 #endif

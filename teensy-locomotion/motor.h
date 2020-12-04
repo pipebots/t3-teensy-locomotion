@@ -20,7 +20,7 @@ class Motor{
     driver_type driver_type_;
 
  public:
-    Motor(driver_type);
+    explicit Motor(driver_type);
     bool setup(int, int, int, int);
     bool setup(int, int, int);
     void move_percent(int);

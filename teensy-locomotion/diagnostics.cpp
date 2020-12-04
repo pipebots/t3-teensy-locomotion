@@ -112,7 +112,7 @@ diagnostic_msgs__msg__KeyValue* update_diagnostic_KeyValue(
 * @brief Error loop for when communication is lost. R
 * Flashes on/off for 5 seconds, then resets board.
 */
-void coms_error(const Motor *left, const Motor *right) {
+void coms_error(Motor *left, Motor *right) {
   // stop motors
   left->move_fwd(0);
   right->move_fwd(0);

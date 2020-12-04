@@ -1,4 +1,13 @@
-/* This is for a differential drive robot base with a teensy 3.2.
+/*
+*                                    __
+* _________.__             ___.     |__|  __
+* \______   \__|_____   ____\_ |__   _||__/  |_  ______
+* |     ___/  \____ \_/ __ \| __ \ /  _ \   __\/  ___/
+* |    |   |  |  |_> >  ___/| \_\ (  O_O )  |  \___ \
+* |____|   |__|   __/ \___  >___  /\____/|__| /____  >
+*             |__|        \/    \/                 \/
+*
+*  Low level controller for a differential drive robot base with a teensy 3.2.
 *  It subscrives to cmd_vel and converts the Twist message to left and right motor commands.
 *  The deadman_timer stops the motors if no command is recieved for 500ms.
 *  (c) Nick Fry 2020
