@@ -15,12 +15,16 @@ const float max_speed = 1.0; // m/s
 const float wheel_base = 0.08; // m
 
 const driver_type left_driver = h_bridge;
+const char *l_driver_name = "Left Motor";
+const char *l_driver_id = "Left SN754410";
 const unsigned int left_pin_en = 5;
 const unsigned int left_pin_a = 7;
 const unsigned int left_pin_b = 8;
 const unsigned int left_deadzone = 5;
 
 const driver_type right_driver = h_bridge;
+const char *r_driver_name = "Right Motor";
+const char *r_driver_id = "Right SN754410";
 const unsigned int right_pin_en = 23;
 const unsigned int right_pin_a = 17;
 const unsigned int right_pin_b = 16;

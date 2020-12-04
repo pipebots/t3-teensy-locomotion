@@ -61,8 +61,8 @@ rcl_timer_t diagnostic_timer;
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&left_motor, &right_motor, LED_PIN);}}
 
 RobotDriver robot(max_speed, wheel_base);
-Motor left_motor(left_driver);
-Motor right_motor(right_driver);
+Motor left_motor(l_driver_name, l_driver_id, left_driver);
+Motor right_motor(r_driver_name, r_driver_id, right_driver);
 Encoder left_encoder(l_encoder_name, l_encoder_pin_a, l_encoder_pin_b,
                   l_counts_per_rev, l_encoder_id, l_inverse);
 Encoder right_encoder(r_encoder_name, r_encoder_pin_a, r_encoder_pin_b,
@@ -162,16 +162,16 @@ void init_diagnostics() {
   // create other statuses
   left_motor_status = create_diagnostic_status(
                         left_motor_status,
-                        "left Motor Driver",
+                        left_motor.name,
                         "Awaiting Setup",
-                        "left_SN754410",
+                        left_motor.hardware_id,
                         diagnostic_msgs__msg__DiagnosticStatus__WARN);
 
   right_motor_status = create_diagnostic_status(
                         right_motor_status,
-                        "right Motor Driver",
+                        right_motor.name,
                         "Awaiting Setup",
-                        "right_SN754410",
+                        right_motor.hardware_id,
                         diagnostic_msgs__msg__DiagnosticStatus__WARN);
 
   left_encoder_status = create_diagnostic_status(

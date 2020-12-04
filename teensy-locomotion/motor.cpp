@@ -1,10 +1,14 @@
 #include "Arduino.h"
 #include "motor.h"
 /*
-* @brief Create motor and config the type of driver it is connected to
+* @brief Create motor and config the type of driver it is connected to.
+* @param motor_name Name for use in diagnostic messages.
+* @param id Hardware Id or serial number for use in diagnostic messages.
 * @param driver Either a h_bridge or pwm_dir style driver.
 */
-Motor::Motor(driver_type driver) {
+Motor::Motor(const char *motor_name, const char *id, driver_type driver) {
+  name = motor_name;
+  hardware_id = id;
   driver_type_ = driver;
 }
 

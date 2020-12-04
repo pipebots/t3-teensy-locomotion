@@ -8,8 +8,8 @@
 * @param pin_A Digital Pin A - Interrupt attached to this one.
 * @param pin_B Digital Pin B.
 * @param counts_per_revolution Number of encoder ticks per turn of the robot's wheel.
-* @param id Optional, default = "". Hardware Id or serial numer for use in diagnostic messages.
-* @param inverse Optional, default = false. Swap the direction which counts up, to account for motors mounted in different ways.
+* @param id Hardware Id or serial number for use in diagnostic messages.
+* @param inverse Swap the direction which counts up, to account for motors mounted in different ways.
 * @return true if successful
 */
 Encoder::Encoder(const char *encoder_name,
