@@ -20,19 +20,17 @@ diagnostic_msgs__msg__DiagnosticStatus* create_diagnostic_status(
   status->level = level;
 
   int name_length = strlen(name) + 1;
-  status->name.data = (char*)malloc(name_length*sizeof(char));
   status->name.capacity = name_length;
   snprintf(status->name.data, status->name.capacity, name);
   status->name.size = strlen(status->name.data);
 
   int msg_length = strlen(message) + 1;
-  status->message.data = (char*)malloc(msg_length*sizeof(char));
+  status->message.data = (char*)malloc(50*sizeof(char));
   status->message.capacity = msg_length;
   snprintf(status->message.data, status->message.capacity, message);
   status->message.size = strlen(status->message.data);
 
   int id_length = strlen(hardwareID) + 1;
-  status->hardware_id.data = (char*)malloc(id_length*sizeof(char));
   status->hardware_id.capacity = id_length;
   snprintf(status->hardware_id.data, status->hardware_id.capacity, hardwareID);
   status->hardware_id.size = strlen(status->hardware_id.data);
@@ -52,7 +50,6 @@ diagnostic_msgs__msg__DiagnosticStatus* update_diagnostic_status(
   const char *message,
   uint8_t level) {
   int msg_length = strlen(message) + 1;
-  status->message.data = (char*)malloc(msg_length*sizeof(char));
   status->message.capacity = msg_length;
   snprintf(status->message.data, status->message.capacity, message);
   status->message.size = strlen(status->message.data);
@@ -76,14 +73,13 @@ diagnostic_msgs__msg__KeyValue* create_diagnostic_KeyValue(
   // Init Key
   keyvalue = diagnostic_msgs__msg__KeyValue__create();
   int key_length = strlen(key) + 1;
-  keyvalue->key.data = (char*)malloc(key_length*sizeof(char));
   keyvalue->key.capacity = key_length;
   // Use Key
   snprintf(keyvalue->key.data, keyvalue->key.capacity, key);
   keyvalue->key.size = strlen(keyvalue->key.data);
   // Init Value
   int value_length = strlen(value) + 1;
-  keyvalue->value.data = (char*)malloc(value_length*sizeof(char));
+  keyvalue->value.data = (char*)malloc(20*sizeof(char));
   keyvalue->value.capacity = value_length;
   // Use Value
   snprintf(keyvalue->value.data, keyvalue->value.capacity, value);
