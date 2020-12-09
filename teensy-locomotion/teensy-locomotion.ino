@@ -30,9 +30,6 @@
 #include "diagnostics.h"
 #include "encoder.h"
 
-
-
-
 rcl_subscription_t cmd_subscriber;
 rcl_publisher_t diagnostics_publisher;
 
@@ -135,7 +132,9 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
 // Timer callback which publishes diaganostic status message at set interval
 void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
   RCLC_UNUSED(last_call_time);
-  publish_diagnostics();
+  if (timer != NULL) {
+    publish_diagnostics();
+  }
 }
 
 /**
@@ -231,8 +230,7 @@ void setup() {
     "cmd_vel"));
 
   // create Diagnostic Status publisher
-  RCCHECK(rclc_publisher_init_default(
-  // RCCHECK(rclc_publisher_init_best_effort(
+  RCCHECK(rclc_publisher_init_best_effort(
     &diagnostics_publisher,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(diagnostic_msgs, msg, DiagnosticArray),
@@ -272,15 +270,15 @@ void setup() {
   if (motor_1.setup(d1_pin_en, d1_pin_a, d1_pin_b, d1_deadzone) == true) {
     // Setup sucessful
     motor_1_status = update_diagnostic_status(
-                          motor_1_status,
-                          "Initialised",
-                           diagnostic_msgs__msg__DiagnosticStatus__OK);
+                        motor_1_status,
+                        "Initialised",
+                        diagnostic_msgs__msg__DiagnosticStatus__OK);
     publish_diagnostics();
   } else {
       motor_1_status = update_diagnostic_status(
-                            motor_1_status,
-                            "Error: Driver type and number of pins initialised do not match",
-                            diagnostic_msgs__msg__DiagnosticStatus__ERROR);
+                          motor_1_status,
+                          "Error: Driver type and number of pins initialised do not match",
+                          diagnostic_msgs__msg__DiagnosticStatus__ERROR);
       publish_diagnostics();
       // block program and flash onboard LED
       while (1) {
@@ -293,15 +291,15 @@ void setup() {
   if (motor_2.setup(d2_pin_en, d2_pin_a, d2_pin_b, d2_deadzone) == true) {
     // setup sucessful
     motor_2_status = update_diagnostic_status(
-                          motor_2_status,
-                          "Initialised",
-                          diagnostic_msgs__msg__DiagnosticStatus__OK);
+                        motor_2_status,
+                        "Initialised",
+                        diagnostic_msgs__msg__DiagnosticStatus__OK);
     publish_diagnostics();
   } else {
     motor_2_status = update_diagnostic_status(
-                          motor_2_status,
-                          "Error: Driver type and number of pins initialised do not match",
-                          diagnostic_msgs__msg__DiagnosticStatus__ERROR);
+                        motor_2_status,
+                        "Error: Driver type and number of pins initialised do not match",
+                        diagnostic_msgs__msg__DiagnosticStatus__ERROR);
     publish_diagnostics();
     // block program and flash onboard LED
     while (1) {
@@ -316,15 +314,15 @@ void setup() {
   if (encoder_1.setup() == true) {
     // Setup sucessful
     encoder_1_status = update_diagnostic_status(
-                            encoder_1_status,
-                            "Initialised",
-                             diagnostic_msgs__msg__DiagnosticStatus__OK);
+                          encoder_1_status,
+                          "Initialised",
+                           diagnostic_msgs__msg__DiagnosticStatus__OK);
     publish_diagnostics();
   } else {
       encoder_1_status = update_diagnostic_status(
-                              encoder_1_status,
-                              "Error: Encoder not initialised, too many instances.",
-                              diagnostic_msgs__msg__DiagnosticStatus__ERROR);
+                            encoder_1_status,
+                            "Error: Not initialised, too many instances.",
+                            diagnostic_msgs__msg__DiagnosticStatus__ERROR);
       publish_diagnostics();
   }
 
@@ -337,15 +335,14 @@ void setup() {
     publish_diagnostics();
   } else {
       encoder_2_status = update_diagnostic_status(
-                              encoder_2_status,
-                              "Error: Encoder not initialised, too many instances.",
-                              diagnostic_msgs__msg__DiagnosticStatus__ERROR);
+                            encoder_2_status,
+                            "Error: Not initialised, too many instances.",
+                            diagnostic_msgs__msg__DiagnosticStatus__ERROR);
       publish_diagnostics();
   }
-
 }  // end setup
 
 void loop() {
-  delay(100);
+//  delay(100);
   RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
 }
