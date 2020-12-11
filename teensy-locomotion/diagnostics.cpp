@@ -21,6 +21,7 @@ diagnostic_msgs__msg__DiagnosticStatus* create_diagnostic_status(
 
   int name_length = strlen(name) + 1;
   status->name.capacity = name_length;
+  status->name.data = (char*)malloc(name_length*sizeof(char));
   snprintf(status->name.data, status->name.capacity, name);
   status->name.size = strlen(status->name.data);
 
@@ -32,6 +33,7 @@ diagnostic_msgs__msg__DiagnosticStatus* create_diagnostic_status(
 
   int id_length = strlen(hardwareID) + 1;
   status->hardware_id.capacity = id_length;
+  status->hardware_id.data = (char*)malloc(id_length*sizeof(char));
   snprintf(status->hardware_id.data, status->hardware_id.capacity, hardwareID);
   status->hardware_id.size = strlen(status->hardware_id.data);
 
@@ -73,6 +75,7 @@ diagnostic_msgs__msg__KeyValue* create_diagnostic_KeyValue(
   // Init Key
   keyvalue = diagnostic_msgs__msg__KeyValue__create();
   int key_length = strlen(key) + 1;
+  keyvalue->key.data = (char*)malloc(key_length*sizeof(char));
   keyvalue->key.capacity = key_length;
   // Use Key
   snprintf(keyvalue->key.data, keyvalue->key.capacity, key);

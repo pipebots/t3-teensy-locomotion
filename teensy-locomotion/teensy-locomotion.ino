@@ -145,7 +145,7 @@ void init_diagnostics() {
   teensy_status = create_diagnostic_status(teensy_status,
                     "Teensy Robot Driver",
                     "Init",
-                    "teensy3.2",
+                    "teensy3.2 5538870",
                     diagnostic_msgs__msg__DiagnosticStatus__OK);
   // Teensy Status Key-value pairs
   deadman_keyval = create_diagnostic_KeyValue(deadman_keyval, "Deadman Timer", "Init");
@@ -267,7 +267,7 @@ void setup() {
   init_diagnostics();
 
   // init motors
-  if (motor_1.setup(d1_pin_en, d1_pin_a, d1_pin_b, d1_deadzone) == true) {
+  if (motor_1.setup(d1_pin_speed, d1_pin_dir, d1_deadzone) == true) {
     // Setup sucessful
     motor_1_status = update_diagnostic_status(
                         motor_1_status,
@@ -288,7 +288,7 @@ void setup() {
         delay(500);
       }
   }
-  if (motor_2.setup(d2_pin_en, d2_pin_a, d2_pin_b, d2_deadzone) == true) {
+  if (motor_2.setup(d2_pin_speed, d2_pin_dir, d2_deadzone) == true) {
     // setup sucessful
     motor_2_status = update_diagnostic_status(
                         motor_2_status,
