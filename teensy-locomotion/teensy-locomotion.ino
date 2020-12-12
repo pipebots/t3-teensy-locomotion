@@ -57,7 +57,7 @@ rcl_timer_t diagnostic_timer;
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&motor_1, &motor_2, LED_PIN);}}
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&motor_1, &motor_2, LED_PIN);}}
 
-RobotDriver robot(max_speed, wheel_base);
+RobotDriver robot(max_speed_mps, wheel_base_m);
 Motor motor_1(driver_1_name, driver_1_id, driver_1);
 Motor motor_2(driver_2_name, driver_2_id, driver_2);
 Encoder encoder_1(encoder_1_name, en1_pin_a, en1_pin_b,
@@ -109,7 +109,7 @@ void vel_received_callback(const void * msgin) {
   deadman_keyval = update_diagnostic_KeyValue(deadman_keyval, "Off");
   teensy_status = update_diagnostic_status(
                     teensy_status,
-                    "messages recieved from /cmd_vel",
+                    "cmd_vel recieved",
                     diagnostic_msgs__msg__DiagnosticStatus__OK);
 }
 
@@ -122,9 +122,9 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
 
     teensy_status = update_diagnostic_status(
                       teensy_status,
-                      "No messages recieved from /cmd_vel for 500ms",
+                      "No cmd_vel for 500ms",
                       diagnostic_msgs__msg__DiagnosticStatus__WARN);
-    deadman_keyval = update_diagnostic_KeyValue(deadman_keyval, "Triggered");
+    deadman_keyval = update_diagnostic_KeyValue(deadman_keyval, "On");
     digitalWrite(LED_PIN, HIGH);
   }
 }
@@ -145,11 +145,11 @@ void init_diagnostics() {
   teensy_status = create_diagnostic_status(teensy_status,
                     "Teensy Robot Driver",
                     "Init",
-                    "teensy3.2 5538870",
+                    "3.2 5538870",
                     diagnostic_msgs__msg__DiagnosticStatus__OK);
   // Teensy Status Key-value pairs
   deadman_keyval = create_diagnostic_KeyValue(deadman_keyval, "Deadman Timer", "Init");
-  estop = create_diagnostic_KeyValue(deadman_keyval, "Emergency Stop", "Off");
+  estop = create_diagnostic_KeyValue(deadman_keyval, "E Stop", "Off");
   headlights = create_diagnostic_KeyValue(deadman_keyval, "Headlights", "Off");
   // add pairs to status in array
   diagnostic_msgs__msg__KeyValue__Sequence__init(&teensy_key_array, 3);
@@ -189,7 +189,7 @@ void init_diagnostics() {
   battery_status = create_diagnostic_status(
                       battery_status,
                       "Battery",
-                      "No monitoring implemented",
+                      "No monitoring",
                       "",
                       diagnostic_msgs__msg__DiagnosticStatus__WARN);
 
@@ -241,7 +241,7 @@ void setup() {
   RCCHECK(rclc_timer_init_default(
     &deadman_timer,
     &support,
-    RCL_MS_TO_NS(deadman_timeout),
+    RCL_MS_TO_NS(deadman_timeout_ms),
     deadman_timer_callback));
 
   // create timer, to pub diagnostics at 1hz
@@ -249,7 +249,7 @@ void setup() {
   RCCHECK(rclc_timer_init_default(
     &diagnostic_timer,
     &support,
-    RCL_MS_TO_NS(1000/diagnostic_frequency),  // convert Hz to ms
+    RCL_MS_TO_NS(1000/diagnostic_frequency_hz),  // convert Hz to ms
     diagnostic_timer_callback));
 
   // create executor
@@ -277,7 +277,7 @@ void setup() {
   } else {
       motor_1_status = update_diagnostic_status(
                           motor_1_status,
-                          "Error: Driver type and number of pins initialised do not match",
+                          "Type and pin mismatch",
                           diagnostic_msgs__msg__DiagnosticStatus__ERROR);
       publish_diagnostics();
       // block program and flash onboard LED
@@ -298,7 +298,7 @@ void setup() {
   } else {
     motor_2_status = update_diagnostic_status(
                         motor_2_status,
-                        "Error: Driver type and number of pins initialised do not match",
+                        "Type and pin mismatch",
                         diagnostic_msgs__msg__DiagnosticStatus__ERROR);
     publish_diagnostics();
     // block program and flash onboard LED
@@ -321,7 +321,7 @@ void setup() {
   } else {
       encoder_1_status = update_diagnostic_status(
                             encoder_1_status,
-                            "Error: Not initialised, too many instances.",
+                            "Too many instances",
                             diagnostic_msgs__msg__DiagnosticStatus__ERROR);
       publish_diagnostics();
   }
@@ -336,7 +336,7 @@ void setup() {
   } else {
       encoder_2_status = update_diagnostic_status(
                             encoder_2_status,
-                            "Error: Not initialised, too many instances.",
+                            "Too many instances",
                             diagnostic_msgs__msg__DiagnosticStatus__ERROR);
       publish_diagnostics();
   }

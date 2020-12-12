@@ -8,12 +8,12 @@
 
 #define LED_PIN 13 //onboard LED
 
-const unsigned int deadman_timeout = 500; // ms
-const unsigned int diagnostic_frequency = 1; // publishing frequency (Hz)
+const unsigned int deadman_timeout_ms = 500; // ms
+const unsigned int diagnostic_frequency_hz = 1; // publishing frequency (Hz)
 
 // Robot base parameters
-const float max_speed = 1.0; // m/s
-const float wheel_base = 0.08; // m
+const float max_speed_mps = 1.0; // m/s
+const float wheel_base_m = 0.08; // m
 
 // Motor 1 Darth Sprintious
 const char *driver_1_name = "Left Motor";
