@@ -133,6 +133,16 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
 void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
   RCLC_UNUSED(last_call_time);
   if (timer != NULL) {
+    // check E stop
+    if (digitalRead(estop_pin)) {
+      teensy_status = update_diagnostic_status(
+                        teensy_status,
+                        "Motors deactivated",
+                        diagnostic_msgs__msg__DiagnosticStatus__ERROR);
+      estop = update_diagnostic_KeyValue(estop, "On");
+    } else {
+      estop = update_diagnostic_KeyValue(estop, "Off");
+    }
     publish_diagnostics();
   }
 }
@@ -208,6 +218,7 @@ void init_diagnostics() {
 void setup() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
+  pinMode(estop_pin, INPUT_PULLUP);
 
   delay(2000);
 
