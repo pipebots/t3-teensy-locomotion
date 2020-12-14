@@ -7,6 +7,7 @@
 #include "motor.h"
 
 #define LED_PIN 13 //onboard LED
+const unsigned int estop_pin = 23 ; // For monitoring e-stop button
 
 const unsigned int deadman_timeout = 500; // ms
 const unsigned int diagnostic_frequency = 1; // publishing frequency (Hz)
