@@ -357,7 +357,7 @@ void setup() {
   init_diagnostics();
 
   // init motors
-  if (motor_1.setup(d1_pin_speed, d1_pin_dir, d1_deadzone) == true) {
+  if (motor_1.setup(d1_pin_speed, d1_pin_dir, d1_deadzone, d1_inverse) == true) {
     // Setup sucessful
     motor_1_status = update_diagnostic_status(
                         motor_1_status,
@@ -378,7 +378,7 @@ void setup() {
         delay(500);
       }
   }
-  if (motor_2.setup(d2_pin_speed, d2_pin_dir, d2_deadzone) == true) {
+  if (motor_2.setup(d2_pin_speed, d2_pin_dir, d2_deadzone, d2_inverse) == true) {
     // setup sucessful
     motor_2_status = update_diagnostic_status(
                         motor_2_status,

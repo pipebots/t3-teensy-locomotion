@@ -21,17 +21,19 @@ const float wheel_base_m = 0.08; // m
 const char *driver_1_name = "Left Motor";
 const char *driver_1_id = "Left MD13S";
 const driver_type driver_1 = pwm_dir;
-const unsigned int d1_pin_speed = 10;
-const unsigned int d1_pin_dir = 12;
+const unsigned int d1_pin_speed = 9;
+const unsigned int d1_pin_dir = 11;
 const unsigned int d1_deadzone = 5;
+const bool d1_inverse = true;
 
 // Motor 2 Darth Sprintious
 const char *driver_2_name = "Right Motor";
 const char *driver_2_id = "Right MD13S";  // Cytron MD13S
 const driver_type driver_2 = pwm_dir;
-const unsigned int d2_pin_speed = 9;
-const unsigned int d2_pin_dir = 11;
+const unsigned int d2_pin_speed = 10;
+const unsigned int d2_pin_dir = 12;
 const unsigned int d2_deadzone = 5;
+const bool d2_inverse = true;
 
 // Encoder 1
 const char *encoder_1_name = "Right Encoder";
