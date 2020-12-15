@@ -23,6 +23,7 @@
 
 #include <diagnostic_msgs/msg/diagnostic_array.h>
 #include <geometry_msgs/msg/twist.h>
+#include <pipebot_msgs/msg/encoders.h>
 
 #include "robot_driver.h"
 #include "motor.h"
@@ -32,7 +33,11 @@
 
 rcl_subscription_t cmd_subscriber;
 rcl_publisher_t diagnostics_publisher;
+rcl_publisher_t enc_1_publisher;
+rcl_publisher_t enc_2_publisher;
 
+pipebot_msgs__msg__Encoders encoder_1_data;
+pipebot_msgs__msg__Encoders encoder_2_data;
 geometry_msgs__msg__Twist cmd_twist;
 diagnostic_msgs__msg__DiagnosticStatus * teensy_status;
 diagnostic_msgs__msg__DiagnosticStatus * motor_1_status;
@@ -53,10 +58,12 @@ rcl_allocator_t allocator;
 rcl_node_t node;
 rcl_timer_t deadman_timer;
 rcl_timer_t diagnostic_timer;
+rcl_timer_t encoder_timer;
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&motor_1, &motor_2, LED_PIN);}}
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&motor_1, &motor_2, LED_PIN);}}
 
+int last_tick_1, last_tick_2 = 0;
 RobotDriver robot(max_speed_mps, wheel_base_m);
 Motor motor_1(driver_1_name, driver_1_id, driver_1);
 Motor motor_2(driver_2_name, driver_2_id, driver_2);
@@ -103,9 +110,42 @@ void vel_received_callback(const void * msgin) {
   int l_percent_speed = robot.percent_speed(robot.left_speed);
   int r_percent_speed = robot.percent_speed(robot.right_speed);
 
-  // move motors
+    // move motors
   motor_1.move_percent(l_percent_speed);
   motor_2.move_percent(r_percent_speed);
+
+  // check encoders
+  if (l_percent_speed > motor_1.get_deadzone() &&
+        last_tick_1 == encoder_1.ticks) {
+    // Motor moved but encoder value unchanged
+    encoder_1_status = update_diagnostic_status(
+                          encoder_1_status,
+                          "Failed to update",
+                           diagnostic_msgs__msg__DiagnosticStatus__ERROR);
+  } else if (l_percent_speed > motor_1.get_deadzone() &&
+        last_tick_1 != encoder_1.ticks) {
+    encoder_1_status = update_diagnostic_status(
+                          encoder_1_status,
+                          "Ok",
+                           diagnostic_msgs__msg__DiagnosticStatus__OK);
+  }
+  if (r_percent_speed > motor_2.get_deadzone() &&
+        last_tick_2 == encoder_2.ticks) {
+    // Motor moved but encoder value unchanged
+    encoder_2_status = update_diagnostic_status(
+                          encoder_2_status,
+                          "Failed to update",
+                           diagnostic_msgs__msg__DiagnosticStatus__ERROR);
+  } else if (r_percent_speed > motor_2.get_deadzone() &&
+        last_tick_2 != encoder_2.ticks) {
+    encoder_2_status = update_diagnostic_status(
+                          encoder_2_status,
+                          "Ok",
+                           diagnostic_msgs__msg__DiagnosticStatus__OK);
+  }
+  last_tick_1 = encoder_1.ticks;
+  last_tick_2 = encoder_2.ticks;
+
   deadman_keyval = update_diagnostic_KeyValue(deadman_keyval, "Off");
   teensy_status = update_diagnostic_status(
                     teensy_status,
@@ -133,6 +173,7 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
 void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
   RCLC_UNUSED(last_call_time);
   if (timer != NULL) {
+
     // check E stop
     if (digitalRead(estop_pin)) {
       teensy_status = update_diagnostic_status(
@@ -146,6 +187,21 @@ void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
     publish_diagnostics();
   }
 }
+
+// Timer callback which publishes encoder data message at set interval
+void encoder_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
+  RCLC_UNUSED(last_call_time);  // TO DO add Stale check here
+
+  encoder_1_data.ticks = encoder_1.ticks;
+  encoder_1_data.wheel_revs = encoder_1.total_revolutions;
+  encoder_1_data.wheel_angle_deg = encoder_1.ticks_to_degrees();
+  RCSOFTCHECK(rcl_publish(&enc_1_publisher, &encoder_1_data, NULL));
+
+  encoder_2_data.ticks = encoder_2.ticks;
+  encoder_2_data.wheel_revs = encoder_2.total_revolutions;
+  encoder_2_data.wheel_angle_deg = encoder_2.ticks_to_degrees();
+  RCSOFTCHECK(rcl_publish(&enc_2_publisher, &encoder_2_data, NULL));
+  }
 
 /**
 * @brief Fills out the diagnostic message structure with the default values
@@ -263,9 +319,31 @@ void setup() {
     RCL_MS_TO_NS(1000/diagnostic_frequency_hz),  // convert Hz to ms
     diagnostic_timer_callback));
 
+  // create timer, to pub encoders at 20hz
+  encoder_timer = rcl_get_zero_initialized_timer();
+  RCCHECK(rclc_timer_init_default(
+    &encoder_timer,
+    &support,
+    RCL_MS_TO_NS(1000/encoder_frequency_hz),  // convert Hz to ms
+    encoder_timer_callback));
+
+  // create encoder publisher
+  RCCHECK(rclc_publisher_init_best_effort(
+  &enc_1_publisher,
+  &node,
+  ROSIDL_GET_MSG_TYPE_SUPPORT(pipebot_msgs, msg, Encoders),
+  "encoder_right"));
+
+  // create encoder publisher
+  RCCHECK(rclc_publisher_init_best_effort(
+  &enc_2_publisher,
+  &node,
+  ROSIDL_GET_MSG_TYPE_SUPPORT(pipebot_msgs, msg, Encoders),
+  "encoder_left"));
+
   // create executor
   // total number of handles = #subscriptions + #timers
-  unsigned int num_handles = 1 + 2;
+  unsigned int num_handles = 1 + 3;
   executor = rclc_executor_get_zero_initialized_executor();
   RCCHECK(rclc_executor_init(&executor, &support.context, num_handles, &allocator));
 
@@ -274,6 +352,7 @@ void setup() {
   RCCHECK(rclc_executor_add_subscription(&executor, &cmd_subscriber, &cmd_twist, &vel_received_callback, ON_NEW_DATA));
   RCCHECK(rclc_executor_add_timer(&executor, &deadman_timer));
   RCCHECK(rclc_executor_add_timer(&executor, &diagnostic_timer));
+  RCCHECK(rclc_executor_add_timer(&executor, &encoder_timer));
 
   init_diagnostics();
 

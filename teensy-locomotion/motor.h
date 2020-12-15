@@ -28,6 +28,7 @@ class Motor{
     void move_rev(int);
     const char *name;
     const char *hardware_id;
+    int get_deadzone();
 };
 
 #endif

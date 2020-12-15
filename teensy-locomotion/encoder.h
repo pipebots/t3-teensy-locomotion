@@ -30,6 +30,7 @@ class Encoder{
     Encoder(const char *,  const unsigned int, const unsigned int,
             const unsigned int, const char *, const bool);
     bool setup();
+    float ticks_to_degrees();
     volatile int total_revolutions, wheel_position, ticks;
     const char *name;
     const char *hardware_id;

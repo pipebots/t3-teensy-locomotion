@@ -118,3 +118,11 @@ void Motor::move_rev(int pwm) {
   // set speed
   analogWrite(pin_en_, pwm);
 }
+
+/**
+* @brief Return value of deadzone for the motor
+* @return deadzone_
+*/
+int Motor::get_deadzone() {
+  return deadzone_;
+}

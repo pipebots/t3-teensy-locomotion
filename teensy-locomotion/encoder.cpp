@@ -139,3 +139,15 @@ void Encoder::count_inverse() {
 // initialise variables
 int Encoder::inst_counter = 0;
 Encoder * Encoder::instances[2] = { NULL, NULL };
+
+/**
+* @brief Converts encoder ticks to wheel angle in degrees.
+* @return angle_deg The angle of the wheel in degrees.
+*/
+float Encoder::ticks_to_degrees() {
+  float angle_deg = wheel_position * 360 / counts_per_revolution_;
+  if (angle_deg < 0) {
+    angle_deg = 360 + angle_deg;
+  }
+  return angle_deg;
+}

@@ -11,6 +11,7 @@ const unsigned int estop_pin = 23 ; // For monitoring e-stop button
 
 const unsigned int deadman_timeout_ms = 500; // ms
 const unsigned int diagnostic_frequency_hz = 1; // publishing frequency (Hz)
+const unsigned int encoder_frequency_hz = 20; // publishing frequency (Hz)
 
 // Robot base parameters
 const float max_speed_mps = 1.0; // m/s
@@ -26,14 +27,14 @@ const unsigned int d1_deadzone = 5;
 
 // Motor 2 Darth Sprintious
 const char *driver_2_name = "Right Motor";
-const char *driver_2_id = "Right MD13S";// Cytron MD13S"; limit of 11 chars?!?!
+const char *driver_2_id = "Right MD13S";  // Cytron MD13S
 const driver_type driver_2 = pwm_dir;
 const unsigned int d2_pin_speed = 9;
 const unsigned int d2_pin_dir = 11;
 const unsigned int d2_deadzone = 5;
 
 // Encoder 1
-const char *encoder_1_name = "Left Encoder";
+const char *encoder_1_name = "Right Encoder";
 const char *encoder_1_id = "";
 const unsigned int en1_pin_a = 3;
 const unsigned int en1_pin_b = 4;
@@ -41,7 +42,7 @@ const unsigned int en1_counts_per_rev = 2500;
 const bool en1_inverse = true;
 
 // Encoder 2
-const char *encoder_2_name = "Right Encoder";
+const char *encoder_2_name = "Left Encoder";
 const char *encoder_2_id = "";
 const unsigned int en2_pin_a = 5;
 const unsigned int en2_pin_b = 6;
