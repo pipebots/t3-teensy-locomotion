@@ -20,12 +20,15 @@ class Motor{
     driver_type driver_type_;
 
  public:
-    Motor(driver_type);
+    Motor(const char *, const char *, driver_type);
     bool setup(int, int, int, int);
     bool setup(int, int, int);
     void move_percent(int);
     void move_fwd(int);
     void move_rev(int);
+    const char *name;
+    const char *hardware_id;
+    int get_deadzone();
 };
 
 #endif

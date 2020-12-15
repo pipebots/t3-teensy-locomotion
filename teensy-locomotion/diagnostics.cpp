@@ -1,6 +1,5 @@
 #include "Arduino.h"
 #include "diagnostics.h"
-#include "config.h"
 
 /**
 * @brief Create diagnostic status message and fill with initial values.
@@ -21,20 +20,20 @@ diagnostic_msgs__msg__DiagnosticStatus* create_diagnostic_status(
   status->level = level;
 
   int name_length = strlen(name) + 1;
-  status->name.data = (char*)malloc(name_length*sizeof(char));
   status->name.capacity = name_length;
+  status->name.data = (char*)malloc(name_length*sizeof(char));
   snprintf(status->name.data, status->name.capacity, name);
   status->name.size = strlen(status->name.data);
 
   int msg_length = strlen(message) + 1;
-  status->message.data = (char*)malloc(msg_length*sizeof(char));
+  status->message.data = (char*)malloc(50*sizeof(char));
   status->message.capacity = msg_length;
   snprintf(status->message.data, status->message.capacity, message);
   status->message.size = strlen(status->message.data);
 
   int id_length = strlen(hardwareID) + 1;
-  status->hardware_id.data = (char*)malloc(id_length*sizeof(char));
   status->hardware_id.capacity = id_length;
+  status->hardware_id.data = (char*)malloc(id_length*sizeof(char));
   snprintf(status->hardware_id.data, status->hardware_id.capacity, hardwareID);
   status->hardware_id.size = strlen(status->hardware_id.data);
 
@@ -53,7 +52,6 @@ diagnostic_msgs__msg__DiagnosticStatus* update_diagnostic_status(
   const char *message,
   uint8_t level) {
   int msg_length = strlen(message) + 1;
-  status->message.data = (char*)malloc(msg_length*sizeof(char));
   status->message.capacity = msg_length;
   snprintf(status->message.data, status->message.capacity, message);
   status->message.size = strlen(status->message.data);
@@ -84,7 +82,7 @@ diagnostic_msgs__msg__KeyValue* create_diagnostic_KeyValue(
   keyvalue->key.size = strlen(keyvalue->key.data);
   // Init Value
   int value_length = strlen(value) + 1;
-  keyvalue->value.data = (char*)malloc(value_length*sizeof(char));
+  keyvalue->value.data = (char*)malloc(20*sizeof(char));
   keyvalue->value.capacity = value_length;
   // Use Value
   snprintf(keyvalue->value.data, keyvalue->value.capacity, value);
@@ -112,14 +110,14 @@ diagnostic_msgs__msg__KeyValue* update_diagnostic_KeyValue(
 * @brief Error loop for when communication is lost. R
 * Flashes on/off for 5 seconds, then resets board.
 */
-void coms_error(const Motor *left, const Motor *right) {
+void coms_error(Motor *left, Motor *right, int led_pin) {
   // stop motors
   left->move_fwd(0);
   right->move_fwd(0);
 
   // flash onboard LED
   for (int i = 0; i <=50; i++) {
-    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+    digitalWrite(led_pin, !digitalRead(led_pin));
     delay(100);
   }
   // restart teensy to try to reconnect
