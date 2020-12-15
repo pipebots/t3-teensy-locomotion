@@ -18,14 +18,16 @@ Motor::Motor(const char *motor_name, const char *id, driver_type driver) {
 * @param pin_1 H-Bridge pin 1
 * @param pin_2 H-Bridge pin 2
 * @param dead_zone Threshold below which the motor command signal will be pulled to zero.
+* @param inverse Swap the direction of rotation.
 * @return true if sucessful
 */
-bool Motor::setup(int pin_speed, int pin_1, int pin_2, int dead_zone) {
+bool Motor::setup(int pin_speed, int pin_1, int pin_2, int dead_zone, bool inverse) {
   if (driver_type_ == h_bridge) {
     pin_en_ = pin_speed;
     pin_A_ = pin_1;
     pin_B_ = pin_2;
     deadzone_ = dead_zone;
+    inverse_ = inverse;
 
     // set digital i/o pins as outputs:
     pinMode(pin_en_, OUTPUT);
@@ -44,11 +46,12 @@ bool Motor::setup(int pin_speed, int pin_1, int pin_2, int dead_zone) {
 * @param dead_zone Threshold below which the motor command signal will be pulled to zero.
 * @return true if sucessful
 */
-bool Motor::setup(int pin_speed, int pin_dir, int dead_zone) {
+bool Motor::setup(int pin_speed, int pin_dir, int dead_zone, bool inverse) {
   if (driver_type_ == pwm_dir) {
     pin_en_ = pin_speed;
     pin_A_ = pin_dir;
     deadzone_ = dead_zone;
+    inverse_ = inverse;
 
     // set digital i/o pins as outputs:
     pinMode(pin_en_, OUTPUT);
@@ -88,14 +91,26 @@ void Motor::move_percent(int percent_speed) {
 * @param pwm Motor speed as PWM signal, 0-255.
 */
 void Motor::move_fwd(int pwm) {
-  switch (driver_type_) {
-    case h_bridge:
-      digitalWrite(pin_A_, HIGH);
-      digitalWrite(pin_B_, LOW);
-      break;
-    case pwm_dir:
-      digitalWrite(pin_A_, HIGH);
-      break;
+  if (inverse_) {
+    switch (driver_type_) {
+      case h_bridge:
+        digitalWrite(pin_A_, LOW);
+        digitalWrite(pin_B_, HIGH);
+        break;
+      case pwm_dir:
+        digitalWrite(pin_A_, LOW);
+        break;
+    }
+  } else {
+      switch (driver_type_) {
+        case h_bridge:
+          digitalWrite(pin_A_, HIGH);
+          digitalWrite(pin_B_, LOW);
+          break;
+        case pwm_dir:
+          digitalWrite(pin_A_, HIGH);
+          break;
+      }
   }
   // set speed
   analogWrite(pin_en_, pwm);
@@ -106,14 +121,26 @@ void Motor::move_fwd(int pwm) {
 * @param pwm Motor speed as PWM signal, 0-255.
 */
 void Motor::move_rev(int pwm) {
-  switch (driver_type_) {
-    case h_bridge:
-      digitalWrite(pin_A_, LOW);
-      digitalWrite(pin_B_, HIGH);
-      break;
-    case pwm_dir:
-      digitalWrite(pin_A_, LOW);
-      break;
+  if (inverse_) {
+    switch (driver_type_) {
+      case h_bridge:
+        digitalWrite(pin_A_, HIGH);
+        digitalWrite(pin_B_, LOW);
+        break;
+      case pwm_dir:
+        digitalWrite(pin_A_, HIGH);
+        break;
+    }
+  } else {
+      switch (driver_type_) {
+        case h_bridge:
+          digitalWrite(pin_A_, LOW);
+          digitalWrite(pin_B_, HIGH);
+          break;
+        case pwm_dir:
+          digitalWrite(pin_A_, LOW);
+          break;
+      }
   }
   // set speed
   analogWrite(pin_en_, pwm);
