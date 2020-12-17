@@ -305,7 +305,7 @@ void setup() {
   ring_side.begin();           // Initialise NeoPixel strip object
   ring_side.show();            // Turn OFF all pixels ASAP
   ring_side.setBrightness(neo_side_bright);
-  loading_chase(10, ring_side.Color(0, ring_side.gamma8(50), 0, 0), 24, &ring_side);
+  loading_chase(10, ring_side.Color(0, ring_side.gamma8(50), 0, 0), 15, &ring_side);
   ring_colour(pipebot_msgs__msg__Leds__COLOUR_GREEN, 50, &ring_side);
   allocator = rcl_get_default_allocator();
 
