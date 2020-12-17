@@ -8,51 +8,51 @@
 * @param strip Neopixel strip object to light up.
 * @return Name of colour set.
 */
-Adafruit_NeoPixel* ring_colour(int8_t colour, uint8_t brightness, Adafruit_NeoPixel* strip) {
+const char* ring_colour(int8_t colour, uint8_t brightness, Adafruit_NeoPixel* strip) {
   switch (colour) {
     case pipebot_msgs__msg__Leds__COLOUR_WHITE:
         strip->fill(strip->Color(0, 0, 0, strip->gamma8(brightness)));
         strip->show();
-        return strip;
+        return "White";
       break;
     case pipebot_msgs__msg__Leds__COLOUR_RED:
         strip->fill(strip->Color(strip->gamma8(brightness), 0, 0, 0));
         strip->show();
-        return strip;
+        return "Red";
         break;
     case pipebot_msgs__msg__Leds__COLOUR_GREEN:
         strip->fill(strip->Color(0, strip->gamma8(brightness), 0, 0));
         strip->show();
-        return strip;
+        return "Green";
       break;
     case pipebot_msgs__msg__Leds__COLOUR_BLUE:
         strip->fill(strip->Color(0, 0, strip->gamma8(brightness), 0));
         strip->show();
-        return strip;
+        return "Blue";
       break;
     case pipebot_msgs__msg__Leds__COLOUR_AQUA:
         strip->fill(strip->Color(0, strip->gamma8(brightness),
                     strip->gamma8(brightness), 0));
         strip->show();
-        return strip;
+        return "Aqua";
       break;
     case pipebot_msgs__msg__Leds__COLOUR_YELLOW:
         strip->fill(strip->Color(strip->gamma8(brightness),
                     strip->gamma8(brightness), 0, 0));
         strip->show();
-        return strip;
+        return "Yellow";
       break;
     case pipebot_msgs__msg__Leds__COLOUR_FUCHSIA:
         strip->fill(strip->Color(strip->gamma8(brightness), 0,
                     strip->gamma8(brightness), 0));
         strip->show();
-        return strip;
+        return "Fuchsia";
       break;
     default:
         // Error no matching case
         strip->fill(strip->Color(30, 20, 0, 0));
         strip->show();
-        return strip;
+        return "Error";
       break;
   }
 }

@@ -160,23 +160,21 @@ void vel_received_callback(const void * msgin) {
 void led_received_callback(const void * msgin) {
   const pipebot_msgs__msg__Leds * msg = (const pipebot_msgs__msg__Leds *)msgin;
   Adafruit_NeoPixel strip;
-  int8_t led = msg->led;
-  // int8_t mode = msg->flash_mode;
-  int8_t colour = msg->colour;
-  uint8_t brightness = msg->brightness;
+  const char* state;
 
-  switch (led) {
+  switch (msg->led) {
     case pipebot_msgs__msg__Leds__SIDE_LIGHTS:
-      side_lights = update_diagnostic_KeyValue(side_lights, "On");
-      //strip = ring_side;
+      state = ring_colour(msg->colour, msg->brightness, &ring_side);
+      side_lights = update_diagnostic_KeyValue(side_lights, state);
       break;
     default:
       // no matching cases
       side_lights = update_diagnostic_KeyValue(side_lights, "leds not implimented");
       break;
     }
-    ring_colour(colour, brightness, &ring_side);
-    //side_lights = update_diagnostic_KeyValue(side_lights, "on");
+    if (msg->brightness == 0) {
+      side_lights = update_diagnostic_KeyValue(side_lights, "Off");
+    }
 }
 
 // If no commands are recieved this executes and sets motors to 0
@@ -307,8 +305,6 @@ void setup() {
   ring_side.show();            // Turn OFF all pixels ASAP
   ring_side.setBrightness(neo_side_bright);
   ring_colour(pipebot_msgs__msg__Leds__COLOUR_GREEN, 50, &ring_side);
-  delay(500);
-  ring_colour(pipebot_msgs__msg__Leds__COLOUR_BLUE, 50, &ring_side);
   allocator = rcl_get_default_allocator();
 
   // create init_options
