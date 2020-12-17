@@ -24,20 +24,24 @@
 #include <diagnostic_msgs/msg/diagnostic_array.h>
 #include <geometry_msgs/msg/twist.h>
 #include <pipebot_msgs/msg/encoders.h>
+#include <pipebot_msgs/msg/leds.h>
 
 #include "robot_driver.h"
 #include "motor.h"
 #include "config.h"
 #include "diagnostics.h"
 #include "encoder.h"
+#include "neopixel.h"
 
 rcl_subscription_t cmd_subscriber;
+rcl_subscription_t led_subscriber;
 rcl_publisher_t diagnostics_publisher;
 rcl_publisher_t enc_1_publisher;
 rcl_publisher_t enc_2_publisher;
 
 pipebot_msgs__msg__Encoders encoder_1_data;
 pipebot_msgs__msg__Encoders encoder_2_data;
+pipebot_msgs__msg__Leds led_data;
 geometry_msgs__msg__Twist cmd_twist;
 diagnostic_msgs__msg__DiagnosticStatus * teensy_status;
 diagnostic_msgs__msg__DiagnosticStatus * motor_1_status;
@@ -47,7 +51,7 @@ diagnostic_msgs__msg__DiagnosticStatus * encoder_2_status;
 diagnostic_msgs__msg__DiagnosticStatus * battery_status;
 diagnostic_msgs__msg__KeyValue * deadman_keyval;
 diagnostic_msgs__msg__KeyValue * estop;
-diagnostic_msgs__msg__KeyValue * headlights;
+diagnostic_msgs__msg__KeyValue * side_lights;
 diagnostic_msgs__msg__KeyValue__Sequence teensy_key_array;
 diagnostic_msgs__msg__DiagnosticStatus__Sequence status_array;
 diagnostic_msgs__msg__DiagnosticArray * dia_array;
@@ -71,12 +75,13 @@ Encoder encoder_1(encoder_1_name, en1_pin_a, en1_pin_b,
                   en1_counts_per_rev, encoder_1_id, en1_inverse);
 Encoder encoder_2(encoder_2_name, en2_pin_a, en2_pin_b,
                   en2_counts_per_rev, encoder_2_id, en2_inverse);
+Adafruit_NeoPixel ring_side(neo_side_num, neo_side_pin, NEO_GRBW + NEO_KHZ800);
 
 void publish_diagnostics() {
   // update key value array
   teensy_key_array.data[0] = *deadman_keyval;
   teensy_key_array.data[1] = *estop;
-  teensy_key_array.data[2] = *headlights;
+  teensy_key_array.data[2] = *side_lights;
   teensy_status->values = teensy_key_array;
 
   // update status array
@@ -152,6 +157,27 @@ void vel_received_callback(const void * msgin) {
                     "cmd_vel recieved",
                     diagnostic_msgs__msg__DiagnosticStatus__OK);
 }
+void led_received_callback(const void * msgin) {
+  const pipebot_msgs__msg__Leds * msg = (const pipebot_msgs__msg__Leds *)msgin;
+  Adafruit_NeoPixel strip;
+  int8_t led = msg->led;
+  // int8_t mode = msg->flash_mode;
+  int8_t colour = msg->colour;
+  uint8_t brightness = msg->brightness;
+
+  switch (led) {
+    case pipebot_msgs__msg__Leds__SIDE_LIGHTS:
+      side_lights = update_diagnostic_KeyValue(side_lights, "On");
+      //strip = ring_side;
+      break;
+    default:
+      // no matching cases
+      side_lights = update_diagnostic_KeyValue(side_lights, "leds not implimented");
+      break;
+    }
+    ring_colour(colour, brightness, &ring_side);
+    //side_lights = update_diagnostic_KeyValue(side_lights, "on");
+}
 
 // If no commands are recieved this executes and sets motors to 0
 void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
@@ -215,13 +241,13 @@ void init_diagnostics() {
                     diagnostic_msgs__msg__DiagnosticStatus__OK);
   // Teensy Status Key-value pairs
   deadman_keyval = create_diagnostic_KeyValue(deadman_keyval, "Deadman Timer", "Init");
-  estop = create_diagnostic_KeyValue(deadman_keyval, "E Stop", "Off");
-  headlights = create_diagnostic_KeyValue(deadman_keyval, "Headlights", "Off");
+  estop = create_diagnostic_KeyValue(estop, "E Stop", "Off");
+  side_lights = create_diagnostic_KeyValue(side_lights, "Side Lights", "Off");
   // add pairs to status in array
   diagnostic_msgs__msg__KeyValue__Sequence__init(&teensy_key_array, 3);
   teensy_key_array.data[0] = *deadman_keyval;
   teensy_key_array.data[1] = *estop;
-  teensy_key_array.data[2] = *headlights;
+  teensy_key_array.data[2] = *side_lights;
   teensy_status->values = teensy_key_array;
 
   // create other statuses
@@ -276,8 +302,13 @@ void setup() {
   digitalWrite(LED_PIN, HIGH);
   pinMode(estop_pin, INPUT_PULLUP);
 
-  delay(2000);
-
+  // Neopixel startup
+  ring_side.begin();           // Initialise NeoPixel strip object
+  ring_side.show();            // Turn OFF all pixels ASAP
+  ring_side.setBrightness(neo_side_bright);
+  ring_colour(pipebot_msgs__msg__Leds__COLOUR_GREEN, 50, &ring_side);
+  delay(500);
+  ring_colour(pipebot_msgs__msg__Leds__COLOUR_BLUE, 50, &ring_side);
   allocator = rcl_get_default_allocator();
 
   // create init_options
@@ -295,6 +326,13 @@ void setup() {
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
     "cmd_vel"));
+
+  // create subscriber
+  RCCHECK(rclc_subscription_init_default(
+    &led_subscriber,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(pipebot_msgs, msg, Leds),
+    "leds"));
 
   // create Diagnostic Status publisher
   RCCHECK(rclc_publisher_init_best_effort(
@@ -343,13 +381,14 @@ void setup() {
 
   // create executor
   // total number of handles = #subscriptions + #timers
-  unsigned int num_handles = 1 + 3;
+  unsigned int num_handles = 2 + 3;
   executor = rclc_executor_get_zero_initialized_executor();
   RCCHECK(rclc_executor_init(&executor, &support.context, num_handles, &allocator));
 
   unsigned int rcl_wait_timeout = 1000;   // in ms
   RCCHECK(rclc_executor_set_timeout(&executor, RCL_MS_TO_NS(rcl_wait_timeout)));
   RCCHECK(rclc_executor_add_subscription(&executor, &cmd_subscriber, &cmd_twist, &vel_received_callback, ON_NEW_DATA));
+  RCCHECK(rclc_executor_add_subscription(&executor, &led_subscriber, &led_data, &led_received_callback, ON_NEW_DATA));
   RCCHECK(rclc_executor_add_timer(&executor, &deadman_timer));
   RCCHECK(rclc_executor_add_timer(&executor, &diagnostic_timer));
   RCCHECK(rclc_executor_add_timer(&executor, &encoder_timer));
