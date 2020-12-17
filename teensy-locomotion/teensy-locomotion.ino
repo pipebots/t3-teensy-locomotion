@@ -166,15 +166,16 @@ void led_received_callback(const void * msgin) {
     case pipebot_msgs__msg__Leds__SIDE_LIGHTS:
       state = ring_colour(msg->colour, msg->brightness, &ring_side);
       side_lights = update_diagnostic_KeyValue(side_lights, state);
+      if (msg->brightness == 0) {
+        side_lights = update_diagnostic_KeyValue(side_lights, "Off");
+      }
       break;
     default:
       // no matching cases
       side_lights = update_diagnostic_KeyValue(side_lights, "leds not implimented");
       break;
     }
-    if (msg->brightness == 0) {
-      side_lights = update_diagnostic_KeyValue(side_lights, "Off");
-    }
+
 }
 
 // If no commands are recieved this executes and sets motors to 0
@@ -304,6 +305,7 @@ void setup() {
   ring_side.begin();           // Initialise NeoPixel strip object
   ring_side.show();            // Turn OFF all pixels ASAP
   ring_side.setBrightness(neo_side_bright);
+  loading_chase(10, ring_side.Color(0, ring_side.gamma8(50), 0, 0), 24, &ring_side);
   ring_colour(pipebot_msgs__msg__Leds__COLOUR_GREEN, 50, &ring_side);
   allocator = rcl_get_default_allocator();
 
