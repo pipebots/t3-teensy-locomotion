@@ -7,11 +7,14 @@
 #include "motor.h"
 
 #define LED_PIN 13 //onboard LED
-const unsigned int estop_pin = 23 ; // For monitoring e-stop button
 
+// Safety
+const unsigned int estop_pin = 23 ; // For monitoring e-stop button
 const unsigned int deadman_timeout_ms = 500; // ms
-const unsigned int diagnostic_frequency_hz = 1; // publishing frequency (Hz)
-const unsigned int encoder_frequency_hz = 20; // publishing frequency (Hz)
+
+// Publishing frequency (Hz)
+const unsigned int diagnostic_frequency_hz = 1;
+const unsigned int encoder_frequency_hz = 20;
 
 // Robot base parameters
 const float max_speed_mps = 1.0; // m/s
@@ -51,6 +54,10 @@ const unsigned int en2_pin_b = 6;
 const unsigned int en2_counts_per_rev = 2500;
 const bool en2_inverse = false;
 
+// NeoPixel Side Rings
+const unsigned int neo_side_pin = 8; // data pin
+const unsigned int neo_side_num = 24; // number of pixels on strip
+const unsigned int neo_side_bright = 255; // brightness (0-255)
 
 /*
 // Motor 1 Rover5
