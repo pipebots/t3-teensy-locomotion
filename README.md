@@ -5,13 +5,14 @@ This is a driver for a differential drive robot base.
 
 ### Features
 - Uses standard interfaces - accepts twist messages on /cmd_vel topic.
-- Has deadmand timer so the motors are set to 0 if no command is received for a set period.
+- Has deadman timer so the motors are set to 0 if no command is received for a set period.
 - Error signalling via onboard LED.
 - Publishes standard diagnostic messages.
 - Emergency stop monitoring.
 - Encoder data published.
 - Error check for motion without encoder updates.
 - Control RBGW neopixel rings
+- Direction of encoders and motors can be switched via config.
 
 # Install
 Follow the [instructions](https://github.com/micro-ROS/micro_ros_arduino/blob/foxy/README.md) to install micro-ros.
