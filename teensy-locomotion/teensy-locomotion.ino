@@ -172,7 +172,7 @@ void led_received_callback(const void * msgin) {
       break;
     default:
       // no matching cases
-      side_lights = update_diagnostic_KeyValue(side_lights, "leds not implimented");
+      side_lights = update_diagnostic_KeyValue(side_lights, "LED not implemented");
       break;
     }
 

@@ -52,7 +52,7 @@ const char* ring_colour(int8_t colour, uint8_t brightness, Adafruit_NeoPixel* st
         // Error no matching case
         strip->fill(strip->Color(30, 20, 0, 0));
         strip->show();
-        return "Error";
+        return "Colour Error";
       break;
   }
 }
