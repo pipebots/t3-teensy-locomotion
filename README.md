@@ -11,6 +11,7 @@ This is a driver for a differential drive robot base.
 - Emergency stop monitoring.
 - Encoder data published.
 - Error check for motion without encoder updates.
+- Control RBGW neopixel rings
 
 # Install
 Follow the [instructions](https://github.com/micro-ROS/micro_ros_arduino/blob/foxy/README.md) to install micro-ros.
@@ -34,6 +35,9 @@ You need to send Twist messages to command the robot, I used a joystick and [tel
 # Subscribed Topics
 - `cmd_vel (geometry_msgs/msg/Twist)`
 	- Command velocity messages. Only the Linear X and Angular Z velocities are used.
+- `leds` ([pipebot_msgs/msg/Leds](https://github.com/pipebots/pipebot-msgs/blob/main/msg/Leds.msg))
+	- Custom message which can be used for many different LED setups. In this case it is controlling one 24 LED neopixel ring (well two, but they wired to one pin).  
+		`led = SIDE_LIGHTS`. `flash_mode` is ignored. To turn off set `brightness = 0`.
 
 # Published Topics
 - `diagnostics (diagnostic_msgs/msg/DiagnosticArray)`
@@ -43,9 +47,9 @@ You need to send Twist messages to command the robot, I used a joystick and [tel
 
 		- Teensy Robot Driver `(diagnostic_msgs/msg/DiagnosticStatus)`
 			- Key Value Pairs `(diagnostic_msgs/msg/KeyValue)`:
-			- Deadman Timer - Off/Triggered
+			- Deadman Timer - Off/On
 			- Emergency Stop - Off/On
-			- Headlights - Off/On
+			- Side Lights - Colour
 
 		- Left Motor Driver `(diagnostic_msgs/msg/DiagnosticStatus)`
 		- Right Motor Driver `(diagnostic_msgs/msg/DiagnosticStatus)`
@@ -82,4 +86,9 @@ If the code detects that the incorrect parameters have been set in the motor set
 When the motors are commanded to move the value of the encoders is checked. If they do not update the component is set to an error state in the diagnostics.
 
 ## E-Stop Activated
-Monitoring of an e-stop button is implemented and sets the driver to Error if pressed. A Key value pair also reports its status. Physically this disconnects the power from the motor drivers in my robot.
+Monitoring of an e-stop button is implemented and sets the driver to Error if pressed. The status read "Motors deactivated". A Key value pair also reports its status. Physically this disconnects the power from the motor drivers in my robot.
+
+## Side lights key value errors
+In the main driver status there is a key value pair for the LEDs. This updates with the colour set or 'off' if brightness is 0.
+- `Colour Error` means there is no matching case for the `colour` set in the message. The LEDs turn ~yellow (30, 20, 0, 0).
+- `LED not implemented` means there is no matching case for the `led` set in the message. Other LEDs do not update.
