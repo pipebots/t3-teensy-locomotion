@@ -22,6 +22,8 @@ Encoder::Encoder(const char *encoder_name,
   pin_A_ = pin_A;
   pin_B_ = pin_B;
   counts_per_revolution_ = counts_per_revolution;
+  // Divide once here rather every time it is used in the conversion functions
+  inv_counts_per_revolution_ = 1.0/counts_per_revolution;
   hardware_id = id;
   this->inverse = inverse;
 }
@@ -145,9 +147,21 @@ Encoder * Encoder::instances[2] = { NULL, NULL };
 * @return angle_deg The angle of the wheel in degrees.
 */
 float Encoder::ticks_to_degrees() {
-  float angle_deg = wheel_position * 360 / counts_per_revolution_;
+  float angle_deg = wheel_position * 360 * inv_counts_per_revolution_;
   if (angle_deg < 0) {
     angle_deg = 360 + angle_deg;
   }
   return angle_deg;
+}
+
+/**
+* @brief Converts encoder ticks to wheel angle in radians.
+* @return angle_rad The angle of the wheel in radians.
+*/
+float Encoder::ticks_to_rad() {
+  float angle_rad = wheel_position * TWO_PI * inv_counts_per_revolution_;
+  if (angle_rad < 0) {
+    angle_rad = TWO_PI + angle_rad;
+  }
+  return angle_rad;
 }

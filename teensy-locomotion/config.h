@@ -10,7 +10,7 @@
 
 // Safety
 const unsigned int estop_pin = 23 ; // For monitoring e-stop button
-const unsigned int deadman_timeout_ms = 500; // ms
+const unsigned int deadman_timeout_ms = 200; // ms
 
 // Publishing frequency (Hz)
 const unsigned int diagnostic_frequency_hz = 1;
