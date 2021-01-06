@@ -15,6 +15,7 @@
 */
 class Encoder{
     int pin_A_, pin_B_, counts_per_revolution_;
+    float inv_counts_per_revolution_;
     bool inverse;
     static int inst_counter; // count instances of class
     static Encoder * instances[2];
@@ -31,6 +32,7 @@ class Encoder{
             const unsigned int, const char *, const bool);
     bool setup();
     float ticks_to_degrees();
+    float ticks_to_rad();
     volatile int total_revolutions, wheel_position, ticks;
     const char *name;
     const char *hardware_id;
