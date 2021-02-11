@@ -1,4 +1,25 @@
 /*
+* MIT License
+*
+* Copyright (c) 2021 University of Leeds
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
 *                                    __
 * _________.__             ___.     |__|  __
 * \______   \__|_____   ____\_ |__   _||__/  |_  ______
@@ -10,7 +31,7 @@
 *  Low level controller for a differential drive robot base with a teensy 3.2.
 *  It subscrives to cmd_vel and converts the Twist message to left and right motor commands.
 *  The deadman_timer stops the motors if no command is recieved for 500ms.
-*  (c) Nick Fry 2020
+*
 */
 
 #include <micro_ros_arduino.h>
@@ -25,6 +46,11 @@
 #include <geometry_msgs/msg/twist.h>
 #include <pipebot_msgs/msg/encoders.h>
 #include <pipebot_msgs/msg/leds.h>
+#include <pipebot_msgs/msg/led_config.h>
+#include <pipebot_msgs/msg/motor_config.h>
+#include <pipebot_msgs/msg/encoder_config.h>
+#include <pipebot_msgs/msg/micro_params.h>
+#include <pipebot_msgs/srv/update_micro_config.h>
 
 #include "robot_driver.h"
 #include "motor.h"
