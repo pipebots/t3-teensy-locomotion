@@ -105,17 +105,20 @@ Encoder encoder_1(encoder_1_name, en1_pin_a, en1_pin_b,
 Encoder encoder_2(encoder_2_name, en2_pin_a, en2_pin_b,
                   en2_counts_per_rev, encoder_2_id, en2_inverse);
 Adafruit_NeoPixel ring_side(neo_side_num, led_side_pin, NEO_GRBW + NEO_KHZ800);
-
 void params_service_callback(const void * request, void * response) {
   pipebot_msgs__srv__UpdateMicroConfig_Request * req_in =
     (pipebot_msgs__srv__UpdateMicroConfig_Request *) request;
   pipebot_msgs__srv__UpdateMicroConfig_Response * res_in =
     (pipebot_msgs__srv__UpdateMicroConfig_Response *) response;
 
+
   // deal with message here
-  // const char *msg = "Parameters Recieved";
-  // int len = strlen(msg)+1;
-  // snprintf(res_in->message.data, len, msg);
+  const char *message = "Parameters Recieved";
+  int msg_length = strlen(message) + 1;
+  res_in->message.data = (char*)malloc(50*sizeof(char));
+  res_in->message.capacity = msg_length;
+  snprintf(res_in->message.data, res_in->message.capacity, message);
+  res_in->message.size = strlen(res_in->message.data);
   res_in->success = true;
 }
 
