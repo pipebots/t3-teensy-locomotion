@@ -113,7 +113,7 @@ void params_service_callback(const void * request, void * response) {
 
 
   // deal with message here
-  const char *message = "Parameters Recieved";
+  const char *message = "Parameters Recieved - but NOT used (TO DO)";
   int msg_length = strlen(message) + 1;
   res_in->message.data = (char*)malloc(50*sizeof(char));
   res_in->message.capacity = msg_length;
@@ -202,20 +202,22 @@ void vel_received_callback(const void * msgin) {
                     "cmd_vel recieved",
                     diagnostic_msgs__msg__DiagnosticStatus__OK);
 }
+
 void led_received_callback(const void * msgin) {
   const pipebot_msgs__msg__Leds * msg = (const pipebot_msgs__msg__Leds *)msgin;
-  Adafruit_NeoPixel strip;
   const char* state;
 
-  if (strcmp(msg->led.data, "sides") == 0) {
+  switch (msg->led) {
+    case pipebot_msgs__msg__Leds__SIDE_LIGHTS:
       state = ring_colour(msg->colour, msg->brightness, &ring_side);
       side_lights = update_diagnostic_KeyValue(side_lights, state);
       if (msg->brightness == 0) {
         side_lights = update_diagnostic_KeyValue(side_lights, "Off");
       }
-    } else {
-      // no matching cases
+      break;
+    default:
       side_lights = update_diagnostic_KeyValue(side_lights, "LED not implemented");
+      break;
     }
 }
 
