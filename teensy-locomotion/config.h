@@ -55,7 +55,7 @@ const unsigned int en2_counts_per_rev = 2500;
 const bool en2_inverse = false;
 
 // NeoPixel Side Rings
-const unsigned int neo_side_pin = 8; // data pin
+const unsigned int led_side_pin = 8; // data pin
 const unsigned int neo_side_num = 24; // number of pixels on strip
 const unsigned int neo_side_bright = 255; // brightness (0-255)
 

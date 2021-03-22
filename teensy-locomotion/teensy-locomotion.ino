@@ -1,4 +1,25 @@
 /*
+* MIT License
+*
+* Copyright (c) 2021 University of Leeds
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
 *                                    __
 * _________.__             ___.     |__|  __
 * \______   \__|_____   ____\_ |__   _||__/  |_  ______
@@ -10,7 +31,7 @@
 *  Low level controller for a differential drive robot base with a teensy 3.2.
 *  It subscrives to cmd_vel and converts the Twist message to left and right motor commands.
 *  The deadman_timer stops the motors if no command is recieved for 500ms.
-*  (c) Nick Fry 2020
+*
 */
 
 #include <micro_ros_arduino.h>
@@ -25,6 +46,11 @@
 #include <geometry_msgs/msg/twist.h>
 #include <pipebot_msgs/msg/encoders.h>
 #include <pipebot_msgs/msg/leds.h>
+#include <pipebot_msgs/msg/led_config.h>
+#include <pipebot_msgs/msg/motor_config.h>
+#include <pipebot_msgs/msg/encoder_config.h>
+#include <pipebot_msgs/msg/micro_params.h>
+#include <pipebot_msgs/srv/update_micro_config.h>
 
 #include "robot_driver.h"
 #include "motor.h"
@@ -38,10 +64,13 @@ rcl_subscription_t led_subscriber;
 rcl_publisher_t diagnostics_publisher;
 rcl_publisher_t enc_1_publisher;
 rcl_publisher_t enc_2_publisher;
+rcl_service_t params_service;
 
 pipebot_msgs__msg__Encoders encoder_1_data;
 pipebot_msgs__msg__Encoders encoder_2_data;
 pipebot_msgs__msg__Leds led_data;
+pipebot_msgs__srv__UpdateMicroConfig_Response response;
+pipebot_msgs__srv__UpdateMicroConfig_Response request;
 geometry_msgs__msg__Twist cmd_twist;
 diagnostic_msgs__msg__DiagnosticStatus * teensy_status;
 diagnostic_msgs__msg__DiagnosticStatus * motor_1_status;
@@ -64,8 +93,8 @@ rcl_timer_t deadman_timer;
 rcl_timer_t diagnostic_timer;
 rcl_timer_t encoder_timer;
 
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&motor_1, &motor_2, LED_PIN);}}
-#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){coms_error(&motor_1, &motor_2, LED_PIN);}}
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if ((temp_rc != RCL_RET_OK)) {coms_error(&motor_1, &motor_2, LED_PIN);}}
+#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if ((temp_rc != RCL_RET_OK)) {coms_error(&motor_1, &motor_2, LED_PIN);}}
 
 int last_tick_1, last_tick_2 = 0;
 RobotDriver robot(max_speed_mps, wheel_base_m);
@@ -75,7 +104,23 @@ Encoder encoder_1(encoder_1_name, en1_pin_a, en1_pin_b,
                   en1_counts_per_rev, encoder_1_id, en1_inverse);
 Encoder encoder_2(encoder_2_name, en2_pin_a, en2_pin_b,
                   en2_counts_per_rev, encoder_2_id, en2_inverse);
-Adafruit_NeoPixel ring_side(neo_side_num, neo_side_pin, NEO_GRBW + NEO_KHZ800);
+Adafruit_NeoPixel ring_side(neo_side_num, led_side_pin, NEO_GRBW + NEO_KHZ800);
+void params_service_callback(const void * request, void * response) {
+  pipebot_msgs__srv__UpdateMicroConfig_Request * req_in =
+    (pipebot_msgs__srv__UpdateMicroConfig_Request *) request;
+  pipebot_msgs__srv__UpdateMicroConfig_Response * res_in =
+    (pipebot_msgs__srv__UpdateMicroConfig_Response *) response;
+
+
+  // deal with message here
+  const char *message = "Parameters Recieved - but NOT used (TO DO)";
+  int msg_length = strlen(message) + 1;
+  res_in->message.data = (char*)malloc(50*sizeof(char));
+  res_in->message.capacity = msg_length;
+  snprintf(res_in->message.data, res_in->message.capacity, message);
+  res_in->message.size = strlen(res_in->message.data);
+  res_in->success = true;
+}
 
 void publish_diagnostics() {
   // update key value array
@@ -157,9 +202,9 @@ void vel_received_callback(const void * msgin) {
                     "cmd_vel recieved",
                     diagnostic_msgs__msg__DiagnosticStatus__OK);
 }
+
 void led_received_callback(const void * msgin) {
   const pipebot_msgs__msg__Leds * msg = (const pipebot_msgs__msg__Leds *)msgin;
-  Adafruit_NeoPixel strip;
   const char* state;
 
   switch (msg->led) {
@@ -171,11 +216,9 @@ void led_received_callback(const void * msgin) {
       }
       break;
     default:
-      // no matching cases
       side_lights = update_diagnostic_KeyValue(side_lights, "LED not implemented");
       break;
     }
-
 }
 
 // If no commands are recieved this executes and sets motors to 0
@@ -198,7 +241,6 @@ void deadman_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
 void diagnostic_timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
   RCLC_UNUSED(last_call_time);
   if (timer != NULL) {
-
     // check E stop
     if (digitalRead(estop_pin)) {
       teensy_status = update_diagnostic_status(
@@ -297,6 +339,7 @@ void init_diagnostics() {
 }
 
 void setup() {
+  set_microros_transports();
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
   pinMode(estop_pin, INPUT_PULLUP);
@@ -317,6 +360,13 @@ void setup() {
   rcl_node_options_t node_ops = rcl_node_get_default_options();
   node_ops.domain_id = 20;
   RCCHECK(rclc_node_init_with_options(&node, "teensy_node", "", &support, &node_ops));
+
+  // create service
+  RCCHECK(rclc_service_init_default(
+    &params_service,
+    &node,
+    ROSIDL_GET_SRV_TYPE_SUPPORT(pipebot_msgs, srv, UpdateMicroConfig),
+    "micro_params"));
 
   // create subscriber
   RCCHECK(rclc_subscription_init_default(
@@ -378,18 +428,23 @@ void setup() {
   "encoder_left"));
 
   // create executor
-  // total number of handles = #subscriptions + #timers
-  unsigned int num_handles = 2 + 3;
+  // total number of handles = #subscriptions + #timers + #services + #clients
+  unsigned int num_handles = 2 + 3 + 1;
   executor = rclc_executor_get_zero_initialized_executor();
   RCCHECK(rclc_executor_init(&executor, &support.context, num_handles, &allocator));
 
   unsigned int rcl_wait_timeout = 1000;   // in ms
   RCCHECK(rclc_executor_set_timeout(&executor, RCL_MS_TO_NS(rcl_wait_timeout)));
-  RCCHECK(rclc_executor_add_subscription(&executor, &cmd_subscriber, &cmd_twist, &vel_received_callback, ON_NEW_DATA));
-  RCCHECK(rclc_executor_add_subscription(&executor, &led_subscriber, &led_data, &led_received_callback, ON_NEW_DATA));
+  RCCHECK(rclc_executor_add_subscription(&executor, &cmd_subscriber, &cmd_twist,
+                                         &vel_received_callback, ON_NEW_DATA));
+  RCCHECK(rclc_executor_add_subscription(&executor, &led_subscriber, &led_data,
+                                         &led_received_callback, ON_NEW_DATA));
   RCCHECK(rclc_executor_add_timer(&executor, &deadman_timer));
   RCCHECK(rclc_executor_add_timer(&executor, &diagnostic_timer));
   RCCHECK(rclc_executor_add_timer(&executor, &encoder_timer));
+  RCCHECK(rclc_executor_add_service(&executor, &params_service, &request,
+                                    &response, params_service_callback));
+
 
   init_diagnostics();
 
