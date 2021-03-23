@@ -225,6 +225,16 @@ void led_received_callback(const void * msgin) {
         front_light = update_diagnostic_KeyValue(front_light, "Off");
       }
       break;
+    case pipebot_msgs__msg__Leds__ALL_LIGHTS:
+      state = ring_colour(msg->colour, msg->brightness, &ring_front);
+      front_light = update_diagnostic_KeyValue(front_light, state);
+      state = ring_colour(msg->colour, msg->brightness, &ring_side);
+      side_lights = update_diagnostic_KeyValue(side_lights, state);
+      if (msg->brightness == 0) {
+        front_light = update_diagnostic_KeyValue(front_light, "Off");
+        side_lights = update_diagnostic_KeyValue(side_lights, "Off");
+      }
+      break;
     default:
       side_lights = update_diagnostic_KeyValue(side_lights, "LED not implemented");
       front_light = update_diagnostic_KeyValue(front_light, "LED not implemented");
