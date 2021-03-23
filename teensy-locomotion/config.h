@@ -59,6 +59,10 @@ const unsigned int led_side_pin = 8; // data pin
 const unsigned int neo_side_num = 24; // number of pixels on strip
 const unsigned int neo_side_bright = 255; // brightness (0-255)
 
+// NeoPixel Front Ring
+const unsigned int led_front_pin = 15; // data pin
+const unsigned int neo_front_num = 24; // number of pixels on strip
+const unsigned int neo_front_bright = 255; // brightness (0-255
 /*
 // Motor 1 Rover5
 const char *driver_1_name = "Left Motor";
