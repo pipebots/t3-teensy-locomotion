@@ -81,6 +81,7 @@ diagnostic_msgs__msg__DiagnosticStatus * battery_status;
 diagnostic_msgs__msg__KeyValue * deadman_keyval;
 diagnostic_msgs__msg__KeyValue * estop;
 diagnostic_msgs__msg__KeyValue * side_lights;
+diagnostic_msgs__msg__KeyValue * front_light;
 diagnostic_msgs__msg__KeyValue__Sequence teensy_key_array;
 diagnostic_msgs__msg__DiagnosticStatus__Sequence status_array;
 diagnostic_msgs__msg__DiagnosticArray * dia_array;
@@ -105,6 +106,7 @@ Encoder encoder_1(encoder_1_name, en1_pin_a, en1_pin_b,
 Encoder encoder_2(encoder_2_name, en2_pin_a, en2_pin_b,
                   en2_counts_per_rev, encoder_2_id, en2_inverse);
 Adafruit_NeoPixel ring_side(neo_side_num, led_side_pin, NEO_GRBW + NEO_KHZ800);
+Adafruit_NeoPixel ring_front(neo_front_num, led_front_pin, NEO_GRBW + NEO_KHZ800);
 void params_service_callback(const void * request, void * response) {
   pipebot_msgs__srv__UpdateMicroConfig_Request * req_in =
     (pipebot_msgs__srv__UpdateMicroConfig_Request *) request;
@@ -127,6 +129,7 @@ void publish_diagnostics() {
   teensy_key_array.data[0] = *deadman_keyval;
   teensy_key_array.data[1] = *estop;
   teensy_key_array.data[2] = *side_lights;
+  teensy_key_array.data[3] = *front_light;
   teensy_status->values = teensy_key_array;
 
   // update status array
@@ -215,8 +218,16 @@ void led_received_callback(const void * msgin) {
         side_lights = update_diagnostic_KeyValue(side_lights, "Off");
       }
       break;
+    case pipebot_msgs__msg__Leds__HEAD_LIGHT:
+      state = ring_colour(msg->colour, msg->brightness, &ring_front);
+      front_light = update_diagnostic_KeyValue(front_light, state);
+      if (msg->brightness == 0) {
+        front_light = update_diagnostic_KeyValue(front_light, "Off");
+      }
+      break;
     default:
       side_lights = update_diagnostic_KeyValue(side_lights, "LED not implemented");
+      front_light = update_diagnostic_KeyValue(front_light, "LED not implemented");
       break;
     }
 }
@@ -284,11 +295,13 @@ void init_diagnostics() {
   deadman_keyval = create_diagnostic_KeyValue(deadman_keyval, "Deadman Timer", "Init");
   estop = create_diagnostic_KeyValue(estop, "E Stop", "Off");
   side_lights = create_diagnostic_KeyValue(side_lights, "Side Lights", "Off");
+  front_light = create_diagnostic_KeyValue(front_light, "Head Light", "Off");
   // add pairs to status in array
-  diagnostic_msgs__msg__KeyValue__Sequence__init(&teensy_key_array, 3);
+  diagnostic_msgs__msg__KeyValue__Sequence__init(&teensy_key_array, 4);
   teensy_key_array.data[0] = *deadman_keyval;
   teensy_key_array.data[1] = *estop;
   teensy_key_array.data[2] = *side_lights;
+  teensy_key_array.data[3] = *front_light;
   teensy_status->values = teensy_key_array;
 
   // create other statuses
@@ -344,12 +357,22 @@ void setup() {
   digitalWrite(LED_PIN, HIGH);
   pinMode(estop_pin, INPUT_PULLUP);
 
+  ring_front.begin();           // Initialise NeoPixel strip object
+  ring_front.show();            // Turn OFF all pixels ASAP
+  ring_front.setBrightness(neo_front_bright);
+  loading_chase(10, ring_front.Color(0, 0, 0, ring_front.gamma8(50)), 15, &ring_front);
+
+  ring_colour(pipebot_msgs__msg__Leds__COLOUR_WHITE, 50, &ring_front);
+
   // Neopixel startup
   ring_side.begin();           // Initialise NeoPixel strip object
   ring_side.show();            // Turn OFF all pixels ASAP
   ring_side.setBrightness(neo_side_bright);
   loading_chase(10, ring_side.Color(0, ring_side.gamma8(50), 0, 0), 15, &ring_side);
   ring_colour(pipebot_msgs__msg__Leds__COLOUR_GREEN, 50, &ring_side);
+
+
+
   allocator = rcl_get_default_allocator();
 
   // create init_options
